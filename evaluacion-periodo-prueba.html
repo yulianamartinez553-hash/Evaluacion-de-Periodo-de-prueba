@@ -1,0 +1,881 @@
+<title>Evaluación de Período de Prueba</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f4;
+    --surface:#ffffff;
+    --surface-2:#e3e9ef;
+    --ink:#1a2433;
+    --ink-soft:#5b6572;
+    --ink-faint:#8892a0;
+    --line:#d7dee5;
+    --line-strong:#b9c3cd;
+    --accent:#2f5d8a;
+    --accent-ink:#1d3f5c;
+    --accent-soft:#dce8f2;
+    --low:#c23b3b;
+    --low-soft:#f6dede;
+    --mid:#a8781f;
+    --mid-soft:#f2e6cd;
+    --high:#1f3d81;
+    --high-soft:#dde3f3;
+    --pen:#1f3d81;
+    --paper:#fbfaf7;
+    --focus:#2f5d8a;
+    --shadow: 0 1px 2px rgba(26,36,51,.06), 0 8px 24px -12px rgba(26,36,51,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#121820;
+      --surface:#1a222c;
+      --surface-2:#212b37;
+      --ink:#e8ecf1;
+      --ink-soft:#a3adb9;
+      --ink-faint:#707c8a;
+      --line:#2c3846;
+      --line-strong:#3c4a5a;
+      --accent:#7fb0dc;
+      --accent-ink:#bcdaf2;
+      --accent-soft:#25384a;
+      --low:#e58a8a;
+      --low-soft:#3d2323;
+      --mid:#dcb267;
+      --mid-soft:#3d3320;
+      --high:#7d97d6;
+      --high-soft:#22305a;
+      --pen:#1f3d81;
+      --paper:#fbfaf7;
+      --focus:#7fb0dc;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#121820;
+    --surface:#1a222c;
+    --surface-2:#212b37;
+    --ink:#e8ecf1;
+    --ink-soft:#a3adb9;
+    --ink-faint:#707c8a;
+    --line:#2c3846;
+    --line-strong:#3c4a5a;
+    --accent:#7fb0dc;
+    --accent-ink:#bcdaf2;
+    --accent-soft:#25384a;
+    --low:#e0847a;
+    --low-soft:#402522;
+    --mid:#dcb267;
+    --mid-soft:#3d3320;
+    --high:#7fbf98;
+    --high-soft:#203a2b;
+    --focus:#7fb0dc;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Source Sans 3", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height:1.45;
+  }
+  h1,h2{
+    font-family:"Barlow Semi Condensed", ui-sans-serif, system-ui, sans-serif;
+    text-wrap:balance;
+    margin:0;
+  }
+  .mono{ font-family:"JetBrains Mono", ui-monospace, "SFMono-Regular", monospace; font-variant-numeric:tabular-nums; }
+
+  .page{
+    max-width:840px;
+    margin:0 auto;
+    padding:28px 20px 80px;
+  }
+
+  /* ---------- header ---------- */
+  .head{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:26px 28px 24px;
+    box-shadow:var(--shadow);
+  }
+  .eyebrow{
+    margin:0 0 6px;
+    font-family:"Barlow Semi Condensed", sans-serif;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    color:var(--accent);
+  }
+  .head h1{ font-size:30px; font-weight:700; color:var(--ink); }
+  .legal{
+    margin:10px 0 22px;
+    font-size:14px;
+    color:var(--ink-soft);
+    max-width:62ch;
+  }
+  .id-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:14px 18px;
+  }
+  .id-grid label{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+  }
+  .id-grid label.span2{ grid-column:1 / -1; }
+  .id-grid input{
+    font:inherit;
+    font-size:14.5px;
+    color:var(--ink);
+    background:var(--bg);
+    border:1px solid var(--line-strong);
+    border-radius:6px;
+    padding:9px 10px;
+  }
+  .id-grid input:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+
+  /* ---------- sticky score bar ---------- */
+  .score-bar{
+    position:sticky;
+    top:0;
+    z-index:5;
+    margin-top:18px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 20px;
+    box-shadow:var(--shadow);
+    display:grid;
+    grid-template-columns:auto 1fr;
+    column-gap:20px;
+    row-gap:8px;
+    align-items:center;
+  }
+  .score-num-wrap{ display:flex; align-items:baseline; gap:10px; }
+  .score-num{
+    font-family:"JetBrains Mono", monospace;
+    font-weight:700;
+    font-size:34px;
+    line-height:1;
+    color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  .score-num .pct{ font-size:18px; color:var(--ink-faint); margin-left:1px; }
+  .score-band{
+    font-size:12.5px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    padding:4px 9px;
+    border-radius:999px;
+    background:var(--surface-2);
+    color:var(--ink-soft);
+  }
+  .score-band.band-low{ background:var(--low-soft); color:var(--low); }
+  .score-band.band-mid{ background:var(--mid-soft); color:var(--mid); }
+  .score-band.band-high{ background:var(--high-soft); color:var(--high); }
+  .score-track{
+    grid-column:1 / -1;
+    height:10px;
+    border-radius:999px;
+    background:var(--surface-2);
+    overflow:hidden;
+  }
+  .score-fill{
+    height:100%;
+    width:0%;
+    border-radius:999px;
+    background:var(--accent);
+    transition:width .25s ease, background-color .25s ease;
+  }
+  .score-fill.band-low{ background:var(--low); }
+  .score-fill.band-mid{ background:var(--mid); }
+  .score-fill.band-high{ background:var(--high); }
+  .score-meta{
+    grid-column:1 / -1;
+    font-size:12.5px;
+    color:var(--ink-faint);
+  }
+
+  /* ---------- sections ---------- */
+  main{ display:flex; flex-direction:column; gap:16px; margin-top:20px; }
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:20px 22px 8px;
+    box-shadow:var(--shadow);
+  }
+  .panel-head{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:6px;
+  }
+  .panel-index{
+    font-family:"JetBrains Mono", monospace;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--accent);
+    background:var(--accent-soft);
+    border-radius:5px;
+    padding:3px 7px;
+  }
+  .panel-head h2{ font-size:19px; font-weight:600; flex:1; }
+  .optional-toggle{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    font-weight:600;
+    cursor:pointer;
+  }
+  .optional-toggle input{ accent-color:var(--accent); width:15px; height:15px; }
+
+  .rows{ display:flex; flex-direction:column; }
+  .row{
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:16px;
+    align-items:center;
+    padding:14px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .row:last-child{ border-bottom:none; }
+  .row-label{ margin:0 0 3px; font-size:15px; font-weight:600; }
+  .row-desc{ margin:0; font-size:13px; color:var(--ink-soft); max-width:46ch; }
+
+  .seg{
+    display:inline-flex;
+    border:1px solid var(--line-strong);
+    border-radius:8px;
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .seg-btn{
+    font:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    padding:9px 13px;
+    border:none;
+    background:var(--surface);
+    color:var(--ink-soft);
+    cursor:pointer;
+    border-left:1px solid var(--line-strong);
+  }
+  .seg-btn:first-child{ border-left:none; }
+  .seg-btn:hover:not(:disabled){ background:var(--surface-2); }
+  .seg-btn:focus-visible{ outline:2px solid var(--focus); outline-offset:-2px; }
+  .seg-btn:disabled{ cursor:not-allowed; opacity:.5; }
+  .seg-btn.seg-low.is-selected{ background:var(--low); color:#fff; }
+  .seg-btn.seg-mid.is-selected{ background:var(--mid); color:#241a06; }
+  .seg-btn.seg-high.is-selected{ background:var(--high); color:#fff; }
+
+  .panel.is-disabled{ opacity:.55; }
+  .panel.is-disabled .row-desc{ color:var(--ink-faint); }
+
+  /* ---------- final panel ---------- */
+  .final{ position:relative; padding-bottom:24px; }
+  .final-lock{
+    display:none;
+    background:var(--surface-2);
+    border:1px dashed var(--line-strong);
+    border-radius:8px;
+    padding:14px 16px;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    margin-bottom:16px;
+  }
+  .final.is-locked .final-lock{ display:block; }
+  .final.is-locked .final-body{ opacity:.4; pointer-events:none; filter:grayscale(.3); }
+  .suggest{
+    font-family:"JetBrains Mono", monospace;
+    font-size:13px;
+    color:var(--accent-ink);
+    background:var(--accent-soft);
+    display:inline-block;
+    padding:6px 11px;
+    border-radius:6px;
+    margin:0 0 16px;
+  }
+  .field-group{ margin-bottom:20px; }
+  .field-group > p.field-title{
+    margin:0 0 10px;
+    font-size:14px;
+    font-weight:700;
+  }
+  .final textarea{
+    width:100%;
+    font:inherit;
+    font-size:14px;
+    color:var(--ink);
+    background:var(--bg);
+    border:1px solid var(--line-strong);
+    border-radius:7px;
+    padding:10px 12px;
+    resize:vertical;
+    min-height:64px;
+  }
+  .auto-note{
+    margin:0 0 20px;
+    font-size:13px;
+    color:var(--ink-soft);
+    background:var(--surface-2);
+    border-radius:8px;
+    padding:10px 13px;
+    max-width:62ch;
+  }
+  .sign-row{ display:grid; grid-template-columns:minmax(0,360px); gap:24px; margin-top:26px; align-items:start; }
+
+  .sig-block{ display:flex; flex-direction:column; gap:6px; }
+  .sig-label{ margin:0; font-size:12.5px; font-weight:700; color:var(--ink-soft); }
+  .sig-pad-wrap{
+    position:relative;
+    border:1px solid var(--line-strong);
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--paper);
+    box-shadow:var(--shadow);
+  }
+  .sig-canvas{
+    display:block;
+    width:100%;
+    height:120px;
+    touch-action:none;
+    cursor:crosshair;
+  }
+  .sig-clear{
+    position:absolute;
+    top:6px;
+    right:6px;
+    font:inherit;
+    font-size:11px;
+    font-weight:700;
+    color:#5b6572;
+    background:#ffffffcc;
+    border:1px solid #d7dee5;
+    border-radius:5px;
+    padding:4px 8px;
+    cursor:pointer;
+  }
+  .sig-clear:hover{ background:#ffffff; }
+  .sig-hint{
+    position:absolute;
+    left:14px;
+    bottom:8px;
+    font-size:11.5px;
+    color:#9aa3ad;
+    pointer-events:none;
+    transition:opacity .15s ease;
+  }
+  .sig-hint.is-hidden{ opacity:0; }
+
+  .actions{ display:flex; flex-direction:column; align-items:flex-end; gap:8px; margin-top:22px; }
+  .print-hint{ margin:0; font-size:12.5px; color:var(--ink-faint); }
+  #submit-btn{
+    font:inherit;
+    font-size:13.5px;
+    font-weight:700;
+    color:#fff;
+    background:var(--accent);
+    border:1px solid var(--accent);
+    border-radius:7px;
+    padding:10px 20px;
+    cursor:pointer;
+  }
+  #submit-btn:hover:not(:disabled){ filter:brightness(1.06); }
+  #submit-btn:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  #submit-btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .sent-panel{
+    margin-top:16px;
+    background:var(--high-soft);
+    border:1px solid var(--high);
+    border-radius:10px;
+    padding:18px 20px;
+    text-align:center;
+  }
+  .sent-title{ margin:0 0 4px; font-family:"Barlow Semi Condensed", sans-serif; font-size:19px; font-weight:700; color:var(--high); }
+  .sent-sub{ margin:0; font-size:13.5px; color:var(--ink-soft); }
+
+  @media (max-width:560px){
+    .id-grid{ grid-template-columns:1fr; }
+    .row{ grid-template-columns:1fr; }
+    .seg{ width:100%; }
+    .seg-btn{ flex:1; }
+    .score-bar{ grid-template-columns:1fr; }
+    .sign-row{ grid-template-columns:1fr; }
+  }
+
+  @media print{
+    body{ background:#fff; }
+    .score-bar{ position:static; box-shadow:none; }
+    .actions{ display:none; }
+    .panel, .head{ box-shadow:none; break-inside:avoid; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .score-fill{ transition:none; }
+  }
+</style>
+
+<div class="page">
+  <header class="head">
+    <p class="eyebrow">Servinorte SRL · Recursos Humanos</p>
+    <h1>Evaluación de Período de Prueba</h1>
+    <p class="legal">Conforme al Art. 92 bis de la Ley de Contrato de Trabajo — a completar antes del vencimiento del período de prueba del colaborador.</p>
+    <div class="id-grid">
+      <label>Nombre del empleado
+        <input id="f-nombre" type="text" placeholder="Apellido y nombre">
+      </label>
+      <label>Puesto
+        <input id="f-puesto" type="text" placeholder="Ej.: Conductor, Administrativo">
+      </label>
+      <label>Fecha de inicio del período de prueba
+        <input id="f-inicio" type="date">
+      </label>
+      <label>Fecha de evaluación
+        <input id="f-fecha" type="date">
+      </label>
+      <label class="span2">Evaluador
+        <input id="f-evaluador" type="text" placeholder="Apellido y nombre">
+      </label>
+    </div>
+  </header>
+
+  <div class="score-bar">
+    <div class="score-num-wrap">
+      <span class="score-num mono" id="score-num">0<span class="pct">%</span></span>
+      <span class="score-band" id="score-band">Sin datos</span>
+    </div>
+    <div class="score-track"><div class="score-fill" id="score-fill"></div></div>
+    <div class="score-meta" id="score-meta">0 / 28 criterios completados</div>
+  </div>
+
+  <main id="sections"></main>
+
+  <section class="panel final is-locked" id="final-panel">
+    <div class="panel-head">
+      <span class="panel-index">10</span>
+      <h2>Comentarios y Firma del Evaluador</h2>
+    </div>
+    <div class="final-lock" id="final-lock">
+      Complete los <strong id="lock-count">28</strong> criterios de arriba y los datos de encabezado (nombre, puesto, evaluador) para habilitar esta sección.
+    </div>
+    <div class="final-body">
+      <span class="suggest" id="suggest-band">Puntaje ponderado: 0%</span>
+
+      <div class="field-group">
+        <p class="field-title">Fortalezas del empleado</p>
+        <textarea id="f-fortalezas" placeholder="Describa los puntos fuertes observados durante el período de prueba…"></textarea>
+      </div>
+      <div class="field-group">
+        <p class="field-title">Áreas de mejora</p>
+        <textarea id="f-mejora" placeholder="Describa los aspectos a reforzar…"></textarea>
+      </div>
+      <div class="field-group">
+        <p class="field-title">Recomendaciones del desempeño</p>
+        <textarea id="f-recomendaciones" placeholder="Recomendaciones concretas para el próximo período…"></textarea>
+      </div>
+
+      <div class="sign-row">
+        <div class="sig-block">
+          <p class="sig-label">Firma del evaluador</p>
+          <div class="sig-pad-wrap">
+            <canvas id="sig-canvas" class="sig-canvas" aria-label="Área para firmar con el mouse, lápiz óptico o el dedo"></canvas>
+            <span class="sig-hint" id="sig-hint">Firme aquí</span>
+            <button type="button" id="sig-clear" class="sig-clear">Limpiar firma</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="actions">
+    <p class="print-hint" id="print-hint"></p>
+    <button id="submit-btn" type="button" disabled>Enviar Evaluación</button>
+  </div>
+  <div class="sent-panel" id="sent-panel" hidden>
+    <p class="sent-title">Evaluación enviada</p>
+    <p class="sent-sub">Gracias — tu evaluación fue registrada. RRHH revisará los resultados.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var sections = [
+    { id:'tarea', title:'Desempeño en la Tarea', items:[
+      { id:'conocimiento', label:'Conocimiento técnico', desc:'Demuestra el conocimiento adecuado para realizar la tarea que se le encomienda.', fundamental:true },
+      { id:'productividad', label:'Productividad', desc:'El nivel de cumplimiento de las tareas es óptimo en los tiempos considerados.' },
+      { id:'habilidad', label:'Habilidad técnica', desc:'Manejo de herramientas, vehículos, tecnología o sistemas (escáner, software de gestión, etc.).', fundamental:true },
+      { id:'calidad', label:'Calidad', desc:'Grado de exactitud y calidad en la ejecución de las tareas asignadas.' },
+      { id:'resolucion', label:'Resolución de problemas', desc:'Habilidad para resolver situaciones imprevistas de manera efectiva (tráfico, auxilios, reparaciones fuera de horario, etc.).', fundamental:true }
+    ]},
+    { id:'actitud', title:'Actitud y Comportamiento Profesional', items:[
+      { id:'normativa', label:'Normativa interna', desc:'Cumplimiento de normas y procedimientos de trabajo establecidos para cada tarea.', fundamental:true },
+      { id:'profesionalismo', label:'Profesionalismo', desc:'Responsabilidad por los resultados obtenidos en su trabajo.' },
+      { id:'etica', label:'Ética', desc:'Respeto por las políticas y valores de la empresa.' }
+    ]},
+    { id:'colaborativo', title:'Trabajo Colaborativo', items:[
+      { id:'equipo', label:'Trabajo en equipo', desc:'Predisposición y actitud para colaborar con el equipo de trabajo.' },
+      { id:'interpersonales', label:'Relaciones interpersonales', desc:'Capacidad para relacionarse efectivamente con sus pares.' },
+      { id:'comunicacion_equipo', label:'Comunicación', desc:'Habilidad para comunicarse de manera efectiva con compañeros y supervisores.' },
+      { id:'adapt_cambio', label:'Adaptabilidad al cambio', desc:'Flexibilidad para adaptarse a cambios o nuevas tareas que se presenten.' }
+    ]},
+    { id:'puntualidad', title:'Puntualidad y Responsabilidad', items:[
+      { id:'puntualidad', label:'Puntualidad', desc:'Llega a tiempo a su puesto de trabajo, respetando los horarios establecidos.', fundamental:true },
+      { id:'asistencia', label:'Asistencia', desc:'Asistencia regular y sin ausencias injustificadas.', fundamental:true }
+    ]},
+    { id:'aprender', title:'Capacidad de Aprender', items:[
+      { id:'aprendizaje', label:'Aprendizaje', desc:'Muestra rapidez en la adopción de nuevos procesos internos, herramientas o tecnologías.', fundamental:true },
+      { id:'mejora', label:'Capacidad de mejora', desc:'Actitud ante la retroalimentación y disposición para mejorar.' },
+      { id:'autoconocimiento', label:'Autoconocimiento', desc:'Demuestra interés y habilidad para mejorar continuamente sus habilidades y desempeño.' }
+    ]},
+    { id:'decisiones', title:'Resolución de Problemas y Toma de Decisiones', items:[
+      { id:'analitica', label:'Capacidad analítica', desc:'Capacidad para identificar problemas y encontrar soluciones rápidas y efectivas.' },
+      { id:'toma_decisiones', label:'Toma de decisiones', desc:'Toma decisiones adecuadas considerando los objetivos de la empresa y sus posibles consecuencias.' },
+      { id:'adapt_imprevistos', label:'Adaptabilidad ante imprevistos', desc:'Capacidad para manejar situaciones imprevistas, como retrasos, cambios de última hora o problemas de tráfico (choferes).', fundamental:true }
+    ]},
+    { id:'seguridad', title:'Seguridad e Higiene', items:[
+      { id:'epp', label:'Equipos de protección personal', desc:'Uso adecuado de equipos de protección personal (si aplica).', fundamental:true },
+      { id:'normas_seguridad', label:'Cumplimiento de normas de seguridad', desc:'Cumplimiento de los protocolos de seguridad interna y externa (accidentes, emergencias).', fundamental:true }
+    ]},
+    { id:'clientes', title:'Relaciones con Clientes', optional:true, items:[
+      { id:'contacto', label:'Modalidad de contacto', desc:'Trato profesional y cortés hacia los clientes o usuarios.', fundamental:true },
+      { id:'respuesta', label:'Capacidad de respuesta', desc:'Resolución efectiva de dudas o problemas planteados por los clientes.' },
+      { id:'orientacion', label:'Orientación al cliente', desc:'Capacidad para mantener una buena relación comercial y ofrecer un excelente servicio.', fundamental:true },
+      { id:'resolucion_cliente', label:'Resolución', desc:'Actitud proactiva para optimizar los procesos y resultados con los clientes.' }
+    ]},
+    { id:'comunicacion', title:'Comunicación', items:[
+      { id:'claridad', label:'Claridad en la comunicación', desc:'Comunica de manera clara y efectiva tanto con superiores como con compañeros y clientes.' },
+      { id:'conflictos', label:'Manejo de conflictos', desc:'Manejo adecuado de conflictos y resolución de problemas en la relación con terceros.' }
+    ]}
+  ];
+
+  // Todos los criterios parten del mismo valor (1 unidad). Los marcados como
+  // "fundamental" —evidenciados en el descriptivo de puesto de Chofer de
+  // Colectivos: manejo defensivo/EPP, puntualidad ("clave" para operaciones
+  // mineras y turísticas), conocimiento y manejo técnico del vehículo,
+  // respuesta ante imprevistos/emergencias y atención al pasajero— reciben
+  // un 50% más de valor. No hay pesos arbitrarios por bloque.
+  var STD_UNIT = 1;
+  var FUND_UNIT = 1.5;
+
+  var answers = {};
+  var lastResult = { rounded: 0, band: '', decision: '' };
+  var sectionsEl = document.getElementById('sections');
+
+  sections.forEach(function(sec, si){
+    var secEl = document.createElement('section');
+    secEl.className = 'panel';
+    secEl.setAttribute('data-section', sec.id);
+
+    var head = document.createElement('div');
+    head.className = 'panel-head';
+    head.innerHTML = '<span class="panel-index">' + String(si+1).padStart(2,'0') + '</span><h2>' + sec.title + '</h2>';
+    if (sec.optional){
+      var tlabel = document.createElement('label');
+      tlabel.className = 'optional-toggle';
+      tlabel.innerHTML = '<input type="checkbox" id="toggle-' + sec.id + '"><span>No aplica a este puesto</span>';
+      head.appendChild(tlabel);
+    }
+    secEl.appendChild(head);
+
+    var rows = document.createElement('div');
+    rows.className = 'rows';
+    sec.items.forEach(function(item){
+      var key = sec.id + '__' + item.id;
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.setAttribute('data-key', key);
+      row.innerHTML =
+        '<div class="row-text"><p class="row-label">' + item.label + '</p><p class="row-desc">' + item.desc + '</p></div>' +
+        '<div class="seg" role="radiogroup" aria-label="' + item.label + '">' +
+          '<button type="button" class="seg-btn seg-low" data-value="1" aria-pressed="false">Bajo</button>' +
+          '<button type="button" class="seg-btn seg-mid" data-value="2" aria-pressed="false">Medio</button>' +
+          '<button type="button" class="seg-btn seg-high" data-value="3" aria-pressed="false">Alto</button>' +
+        '</div>';
+      rows.appendChild(row);
+    });
+    secEl.appendChild(rows);
+    sectionsEl.appendChild(secEl);
+  });
+
+  sectionsEl.addEventListener('click', function(e){
+    var btn = e.target.closest('.seg-btn');
+    if (!btn || btn.disabled) return;
+    var row = btn.closest('.row');
+    if (!row) return;
+    var key = row.getAttribute('data-key');
+    answers[key] = Number(btn.getAttribute('data-value'));
+    row.querySelectorAll('.seg-btn').forEach(function(b){
+      var sel = (b === btn);
+      b.classList.toggle('is-selected', sel);
+      b.setAttribute('aria-pressed', String(sel));
+    });
+    compute();
+  });
+
+  sections.filter(function(s){ return s.optional; }).forEach(function(sec){
+    var toggle = document.getElementById('toggle-' + sec.id);
+    toggle.addEventListener('change', function(){
+      var secEl = sectionsEl.querySelector('[data-section="' + sec.id + '"]');
+      secEl.classList.toggle('is-disabled', toggle.checked);
+      secEl.querySelectorAll('.seg-btn').forEach(function(b){ b.disabled = toggle.checked; });
+      if (toggle.checked){
+        sec.items.forEach(function(item){ delete answers[sec.id + '__' + item.id]; });
+        secEl.querySelectorAll('.seg-btn').forEach(function(b){
+          b.classList.remove('is-selected');
+          b.setAttribute('aria-pressed', 'false');
+        });
+      }
+      compute();
+    });
+  });
+
+  function activeSections(){
+    return sections.filter(function(s){
+      if (!s.optional) return true;
+      var t = document.getElementById('toggle-' + s.id);
+      return !(t && t.checked);
+    });
+  }
+
+  function compute(){
+    var active = activeSections();
+    var activeItems = [];
+    active.forEach(function(sec){
+      sec.items.forEach(function(item){ activeItems.push({ sec:sec, item:item }); });
+    });
+    var totalUnits = activeItems.reduce(function(sum, entry){
+      return sum + (entry.item.fundamental ? FUND_UNIT : STD_UNIT);
+    }, 0);
+
+    var scoreSum = 0, required = 0, answered = 0;
+    activeItems.forEach(function(entry){
+      required++;
+      var unit = entry.item.fundamental ? FUND_UNIT : STD_UNIT;
+      var itemWeight = totalUnits > 0 ? (unit / totalUnits * 100) : 0;
+      var v = answers[entry.sec.id + '__' + entry.item.id];
+      if (v){
+        answered++;
+        scoreSum += itemWeight * ((v - 1) / 2);
+      }
+    });
+
+    var percent = scoreSum;
+    var rounded = Math.round(percent);
+
+    document.getElementById('score-num').innerHTML = rounded + '<span class="pct">%</span>';
+    document.getElementById('score-fill').style.width = Math.max(rounded, answered > 0 ? 2 : 0) + '%';
+    document.getElementById('score-meta').textContent = answered + ' / ' + required + ' criterios completados';
+    document.getElementById('lock-count').textContent = required;
+
+    var band = 'Sin datos', bandClass = '';
+    if (answered > 0){
+      if (percent < 50){ band = 'Desempeño bajo'; bandClass = 'band-low'; }
+      else if (percent < 80){ band = 'Desempeño medio'; bandClass = 'band-mid'; }
+      else { band = 'Desempeño alto'; bandClass = 'band-high'; }
+    }
+    var bandEl = document.getElementById('score-band');
+    bandEl.textContent = band;
+    bandEl.className = 'score-band ' + bandClass;
+    document.getElementById('score-fill').className = 'score-fill ' + bandClass;
+
+    var decision = '';
+    if (answered > 0){
+      if (bandClass === 'band-low') decision = 'No aprobado';
+      else if (bandClass === 'band-mid') decision = 'Extensión del período de prueba (RRHH define la nueva fecha límite conforme a la ley y al convenio colectivo aplicable)';
+      else decision = 'Aprobado';
+    }
+
+    var suggestEl = document.getElementById('suggest-band');
+    suggestEl.textContent = answered > 0
+      ? 'Puntaje ponderado: ' + rounded + '% — ' + band
+      : 'Puntaje ponderado: 0%';
+
+    var nombre = document.getElementById('f-nombre').value.trim();
+    var puesto = document.getElementById('f-puesto').value.trim();
+    var evaluador = document.getElementById('f-evaluador').value.trim();
+    formComplete = (answered === required) && !!nombre && !!puesto && !!evaluador;
+    document.getElementById('final-panel').classList.toggle('is-locked', !formComplete);
+
+    lastResult = { rounded: rounded, band: band, decision: decision };
+    updatePrintState();
+  }
+
+  ['f-nombre','f-puesto','f-evaluador'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', compute);
+  });
+
+  // ---------- firma digital del evaluador ----------
+  var sigCanvas = document.getElementById('sig-canvas');
+  var sigCtx = sigCanvas.getContext('2d');
+  var sigHint = document.getElementById('sig-hint');
+  var hasSignature = false;
+  var formComplete = false;
+  var drawing = false;
+  var lastX = 0, lastY = 0;
+
+  function sizeSignaturePad(){
+    var rect = sigCanvas.getBoundingClientRect();
+    var dpr = window.devicePixelRatio || 1;
+    var snapshot = hasSignature ? sigCanvas.toDataURL() : null;
+    sigCanvas.width = rect.width * dpr;
+    sigCanvas.height = rect.height * dpr;
+    sigCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawBaseline();
+    if (snapshot){
+      var img = new Image();
+      img.onload = function(){ sigCtx.drawImage(img, 0, 0, rect.width, rect.height); };
+      img.src = snapshot;
+    }
+  }
+
+  function drawBaseline(){
+    var w = sigCanvas.getBoundingClientRect().width;
+    var h = sigCanvas.getBoundingClientRect().height;
+    sigCtx.save();
+    sigCtx.strokeStyle = '#d7dee5';
+    sigCtx.lineWidth = 1;
+    sigCtx.beginPath();
+    sigCtx.moveTo(w * 0.08, h * 0.72);
+    sigCtx.lineTo(w * 0.92, h * 0.72);
+    sigCtx.stroke();
+    sigCtx.restore();
+  }
+
+  function clearSignature(){
+    var rect = sigCanvas.getBoundingClientRect();
+    sigCtx.clearRect(0, 0, rect.width, rect.height);
+    drawBaseline();
+    hasSignature = false;
+    sigHint.classList.remove('is-hidden');
+    updatePrintState();
+  }
+
+  function pointerPos(e){
+    var rect = sigCanvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  var penColor = getComputedStyle(document.documentElement).getPropertyValue('--pen').trim() || '#1f3d81';
+
+  sigCanvas.addEventListener('pointerdown', function(e){
+    drawing = true;
+    sigCanvas.setPointerCapture(e.pointerId);
+    var p = pointerPos(e);
+    lastX = p.x; lastY = p.y;
+    sigCtx.fillStyle = penColor;
+    sigCtx.beginPath();
+    sigCtx.arc(p.x, p.y, 0.9, 0, Math.PI * 2);
+    sigCtx.fill();
+    if (!hasSignature){
+      hasSignature = true;
+      sigHint.classList.add('is-hidden');
+      updatePrintState();
+    }
+  });
+
+  sigCanvas.addEventListener('pointermove', function(e){
+    if (!drawing) return;
+    var p = pointerPos(e);
+    sigCtx.strokeStyle = penColor;
+    sigCtx.lineWidth = 1.6;
+    sigCtx.lineCap = 'round';
+    sigCtx.lineJoin = 'round';
+    sigCtx.beginPath();
+    sigCtx.moveTo(lastX, lastY);
+    sigCtx.lineTo(p.x, p.y);
+    sigCtx.stroke();
+    lastX = p.x; lastY = p.y;
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(function(ev){
+    sigCanvas.addEventListener(ev, function(){ drawing = false; });
+  });
+
+  document.getElementById('sig-clear').addEventListener('click', clearSignature);
+
+  window.addEventListener('resize', sizeSignaturePad);
+  sizeSignaturePad();
+
+  function updatePrintState(){
+    var submitBtn = document.getElementById('submit-btn');
+    var hint = document.getElementById('print-hint');
+    var ok = formComplete && hasSignature;
+    submitBtn.disabled = !ok;
+    if (ok){
+      hint.textContent = '';
+    } else if (!formComplete){
+      hint.textContent = 'Complete todos los criterios y el encabezado para poder enviar.';
+    } else {
+      hint.textContent = 'Falta la firma del evaluador para poder enviar.';
+    }
+  }
+
+  // URL del Web App de Apps Script (Implementar > Nueva implementación > Aplicación web).
+  // Pegar aquí la URL que entrega Google al desplegar el script de la planilla.
+  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCKpckHjGysB836393HcbeLZVbfTFH2IqT4wnKfRsHtcBqHiKzGsdAW7vAqeTcRBHWbQ/exec';
+
+  function buildPayload(){
+    var payload = {
+      nombre: document.getElementById('f-nombre').value.trim(),
+      puesto: document.getElementById('f-puesto').value.trim(),
+      fechaInicio: document.getElementById('f-inicio').value,
+      fechaEvaluacion: document.getElementById('f-fecha').value,
+      evaluador: document.getElementById('f-evaluador').value.trim(),
+      clientesAplica: !(document.getElementById('toggle-clientes') && document.getElementById('toggle-clientes').checked),
+      criteria: {},
+      puntaje: lastResult.rounded,
+      banda: lastResult.band,
+      decision: lastResult.decision,
+      fortalezas: document.getElementById('f-fortalezas').value.trim(),
+      mejora: document.getElementById('f-mejora').value.trim(),
+      recomendaciones: document.getElementById('f-recomendaciones').value.trim(),
+      firmaBase64: sigCanvas.toDataURL('image/png')
+    };
+    Object.keys(answers).forEach(function(key){ payload.criteria[key] = answers[key]; });
+    return payload;
+  }
+
+  document.getElementById('submit-btn').addEventListener('click', function(){
+    if (this.disabled) return;
+    if (!APPS_SCRIPT_URL){
+      document.getElementById('print-hint').textContent = 'Falta configurar el destino de envío (contactar a RRHH/IT).';
+      return;
+    }
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Enviando…';
+    fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(buildPayload())
+    }).then(function(r){ return r.json(); }).then(function(res){
+      if (!res || res.ok !== true) throw new Error(res && res.error);
+      document.querySelector('.page > main').style.display = 'none';
+      document.getElementById('final-panel').style.display = 'none';
+      document.querySelector('.actions').style.display = 'none';
+      document.getElementById('sent-panel').hidden = false;
+    }).catch(function(){
+      btn.disabled = false;
+      btn.textContent = 'Enviar Evaluación';
+      document.getElementById('print-hint').textContent = 'No se pudo enviar. Verifique la conexión e intente nuevamente.';
+    });
+  });
+
+  compute();
+})();
+</script>
