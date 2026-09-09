@@ -65,10 +65,19 @@ function doPost(e) {
     var lastRow = sheet.getLastRow();
     var lastCol = sheet.getLastColumn();
 
-    var pdfUrl = generarPdf(data);
+    // Si la generación del PDF falla, la fila con las respuestas ya quedó
+    // guardada igual — se deja el error escrito en esa celda en vez de un
+    // link vacío sin explicación, para poder diagnosticarlo desde la
+    // planilla sin depender de los registros de ejecución de Apps Script.
+    var pdfUrl;
+    try {
+      pdfUrl = generarPdf(data);
+    } catch (pdfErr) {
+      pdfUrl = 'ERROR generando PDF: ' + String(pdfErr);
+    }
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v7' }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v8' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -140,7 +149,13 @@ function markDecisionCheckbox(body, prefix) {
     if (child.getType() !== DocumentApp.ElementType.LIST_ITEM) continue;
     var item = child.asListItem();
     if (item.getText().indexOf(prefix) !== 0) continue;
-    item.setChecked(true);
+    try {
+      item.setChecked(true);
+    } catch (err) {
+      // No es un checklist tildable para la API (setChecked tiró error) —
+      // se marca resaltando el texto en vez de romper la generación del PDF.
+      item.editAsText().setBold(true).setForegroundColor('#1c7a3c');
+    }
     return true;
   }
   return false;
