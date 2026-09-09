@@ -97,18 +97,21 @@ function generarPdf(data) {
   var doc = DocumentApp.openById(copyFile.getId());
   var body = doc.getBody();
 
-  body.replaceText('Nombre del Empleado:\\s*_+', 'Nombre del Empleado: ' + safeReplacement(data.nombre));
-  body.replaceText('Puesto:\\s*_+', 'Puesto: ' + safeReplacement(data.puesto));
-  body.replaceText('Inicio del Periodo de Prueba:\\s*_+', 'Inicio del Periodo de Prueba: ' + safeReplacement(data.fechaInicio));
-  body.replaceText('Fecha de Evaluación:\\s*_+', 'Fecha de Evaluación: ' + safeReplacement(data.fechaEvaluacion));
-  body.replaceText('Evaluador:\\s*_+', 'Evaluador: ' + safeReplacement(data.evaluador));
+  // El documento usa campos de combinación {{...}}, no líneas con guion bajo.
+  body.replaceText('\\{\\{Inicio del período de prueba\\}\\}', safeReplacement(data.fechaInicio));
+  body.replaceText('\\{\\{Nombre del empleado\\}\\}', safeReplacement(data.nombre));
+  body.replaceText('\\{\\{Puesto\\}\\}', safeReplacement(data.puesto));
+  body.replaceText('\\{\\{Evaluador\\}\\}', safeReplacement(data.evaluador));
+  body.replaceText('\\{\\{Fecha de evaluación\\}\\}', safeReplacement(data.fechaEvaluacion));
 
-  // Recorre la tabla real del documento y marca el casillero de cada criterio
-  // ya respondido, dejando intactos (en blanco) los que no aplican.
+  // Recorre TODAS las tablas del documento (ahora hay varias antes de la de
+  // criterios: logo, datos del evaluado, datos del evaluador) y marca el
+  // casillero de cada criterio ya respondido, dejando intactos los que no
+  // aplican. No se asume que la tabla de criterios sea la primera.
   var tables = body.getTables();
-  if (tables.length > 0) {
-    var table = tables[0];
-    var matched = 0;
+  var matched = 0;
+  for (var t = 0; t < tables.length; t++) {
+    var table = tables[t];
     for (var r = 0; r < table.getNumRows(); r++) {
       var row = table.getRow(r);
       if (row.getNumCells() < 3) continue;
@@ -138,11 +141,11 @@ function generarPdf(data) {
 
   var decision = data.decision || '';
   if (decision.indexOf('Aprobado') === 0) {
-    body.replaceText('APROBADO – Se confirma la contratación a largo plazo\\.', '☑ APROBADO – Se confirma la contratación a largo plazo.');
+    body.replaceText('APROBADO: Se confirma la contratación a largo plazo\\.', '☑ APROBADO: Se confirma la contratación a largo plazo.');
   } else if (decision.indexOf('Extensión') === 0) {
-    body.replaceText('EXTENSIÓN DEL PERIODO DE PRUEBA – Se solicita más tiempo para evaluar el desempeño\\.', '☑ EXTENSIÓN DEL PERIODO DE PRUEBA – Se solicita más tiempo para evaluar el desempeño.');
+    body.replaceText('EXTENSIÓN DEL PERIODO DE PRUEBA: Se solicita más tiempo para evaluar el desempeño\\.', '☑ EXTENSIÓN DEL PERIODO DE PRUEBA: Se solicita más tiempo para evaluar el desempeño.');
   } else if (decision.indexOf('No aprobado') === 0) {
-    body.replaceText('NO APROBADO – Se decide no continuar con la relación laboral\\.', '☑ NO APROBADO – Se decide no continuar con la relación laboral.');
+    body.replaceText('NO APROBADO: Se decide NO continuar con la relación laboral\\.', '☑ NO APROBADO: Se decide NO continuar con la relación laboral.');
   }
 
   if (data.firmaBase64) {
