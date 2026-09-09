@@ -77,7 +77,7 @@ function doPost(e) {
     }
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v13' }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v14' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -269,10 +269,24 @@ function fillHeaderTokens(body, data) {
           var value = Object.prototype.hasOwnProperty.call(values, key) ? values[key] : '';
           var start = match.index;
           var end = start + match[0].length - 1;
+
+          // Se guarda la fuente/tamaño/color del propio token ANTES de
+          // borrarlo: si no queda ningún carácter pegado al lado después de
+          // borrar, el texto nuevo hereda la fuente del párrafo (Times New
+          // Roman, el respaldo de la plantilla) en vez del Arial que usa el
+          // token, y se nota distinto al resto del documento.
+          var fontFamily = text.getFontFamily(start);
+          var fontSize = text.getFontSize(start);
+          var color = text.getForegroundColor(start);
+
           text.deleteText(start, end);
           if (value) {
             text.insertText(start, value);
-            text.setItalic(start, start + value.length - 1, false);
+            var newEnd = start + value.length - 1;
+            text.setItalic(start, newEnd, false);
+            if (fontFamily) text.setFontFamily(start, newEnd, fontFamily);
+            if (fontSize) text.setFontSize(start, newEnd, fontSize);
+            if (color) text.setForegroundColor(start, newEnd, color);
           }
           cellText = text.getText();
         }
