@@ -166,6 +166,40 @@ function checkboxTrio(valor) {
   return box(1) + ' ' + box(2) + ' ' + box(3);
 }
 
+// Completa los campos {{...}} de las tablas del encabezado celda por celda
+// (igual que los casilleros de la tabla de criterios), en vez de usar
+// body.replaceText() en todo el documento. body.replaceText() usa un motor
+// de regex que en pruebas reales terminaba reemplazando el valor correcto
+// en la celda equivocada cuando el texto de la celda quedaba dividido en
+// más de un "run" interno — por eso "Nombre del empleado" y "Puesto"
+// aparecían vacíos y sus valores se colaban en la celda de "Inicio del
+// período de prueba". Al operar sobre el texto de cada celda por separado
+// ese problema no puede ocurrir.
+function fillHeaderTokens(body, data) {
+  var values = {
+    'Inicio del período de prueba': formatDateEs(data.fechaInicio),
+    'Nombre del empleado': data.nombre || '',
+    'Puesto': data.puesto || '',
+    'Evaluador': data.evaluador || '',
+    'Fecha de evaluación': formatDateEs(data.fechaEvaluacion)
+  };
+  body.getTables().forEach(function(table){
+    for (var r = 0; r < table.getNumRows(); r++) {
+      var row = table.getRow(r);
+      for (var c = 0; c < row.getNumCells(); c++) {
+        var cell = row.getCell(c);
+        var cellText = cell.getText();
+        if (cellText.indexOf('{{') === -1) continue;
+        var newText = cellText.replace(/\{\{([^}]+)\}\}/g, function(match, token) {
+          var key = token.trim();
+          return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : '';
+        });
+        cell.editAsText().setText(newText);
+      }
+    }
+  });
+}
+
 // ---------- generación del PDF: se copia el documento original y solo se completan los valores ----------
 
 function generarPdf(data) {
