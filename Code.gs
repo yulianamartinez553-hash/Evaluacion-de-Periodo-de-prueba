@@ -77,7 +77,7 @@ function doPost(e) {
     }
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v10' }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v11' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -160,20 +160,28 @@ function fillItemsBelow(body, labelText, items) {
   }
   if (!anchor) return;
 
+  // "Recomendaciones del desempeño" usa en la plantilla una lista numerada
+  // (1, 2, 3) en vez de viñetas redondas como "Fortalezas"/"Áreas de
+  // mejora" — se fuerza el mismo tipo de viñeta en los tres casos para que
+  // se vean iguales sin depender de qué lista haya usado cada sección en
+  // el documento original.
+  var anchorListId = anchor.getListId();
+  anchor.setGlyphType(DocumentApp.GlyphType.BULLET);
   anchor.setText(arr[0]);
   var slot = i + 1;
   for (var n = 1; n < Math.min(arr.length, 3); n++) {
     var next = slot < body.getNumChildren() ? body.getChild(slot) : null;
-    if (next && next.getType() === DocumentApp.ElementType.LIST_ITEM && next.asListItem().getListId() === anchor.getListId()) {
+    if (next && next.getType() === DocumentApp.ElementType.LIST_ITEM && next.asListItem().getListId() === anchorListId) {
       // ya hay una viñeta en blanco lista para este ítem: se reutiliza.
+      next.asListItem().setGlyphType(DocumentApp.GlyphType.BULLET);
       next.asListItem().setText(arr[n]);
     } else {
       // no quedan viñetas preparadas: se inserta una nueva con el mismo
-      // estilo de lista que la primera, en vez de escribir sobre lo que
+      // formato de texto que la primera, en vez de escribir sobre lo que
       // venga después (que puede no ser una viñeta en absoluto).
       var newItem = body.insertListItem(slot, arr[n]);
       newItem.setAttributes(copyStyleAttrs(anchor.getAttributes()));
-      newItem.setListId(anchor);
+      newItem.setGlyphType(DocumentApp.GlyphType.BULLET);
     }
     slot++;
   }
