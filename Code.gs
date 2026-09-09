@@ -97,6 +97,22 @@ function generarPdf(data) {
   var doc = DocumentApp.openById(copyFile.getId());
   var body = doc.getBody();
 
+  if (data.debug) {
+    var dbgTables = body.getTables();
+    body.insertParagraph(0, 'DEBUG_TABLE_COUNT=' + dbgTables.length);
+    for (var dbi = 0; dbi < Math.min(dbgTables.length, 6); dbi++) {
+      var dbgRows = [];
+      for (var dbr = 0; dbr < dbgTables[dbi].getNumRows(); dbr++) {
+        var dbgCells = [];
+        for (var dbc = 0; dbc < dbgTables[dbi].getRow(dbr).getNumCells(); dbc++) {
+          dbgCells.push(dbgTables[dbi].getRow(dbr).getCell(dbc).getText());
+        }
+        dbgRows.push('[' + dbgCells.join(' ~~ ') + ']');
+      }
+      body.insertParagraph(dbi + 1, 'DEBUG_T' + dbi + '=' + dbgRows.join(' // '));
+    }
+  }
+
   // El documento usa campos de combinación {{...}}, no líneas con guion bajo.
   body.replaceText('\\{\\{Inicio del período de prueba\\}\\}', safeReplacement(data.fechaInicio));
   body.replaceText('\\{\\{Nombre del empleado\\}\\}', safeReplacement(data.nombre));
