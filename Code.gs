@@ -77,7 +77,7 @@ function doPost(e) {
     }
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v17' }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v18' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -228,6 +228,38 @@ function convertResultadoChecklist(body, checkedPrefix) {
   }
 }
 
+// Cuando el resultado es "Aprobado" o "Extensión del período de prueba" se
+// agrega, justo antes del bloque de firma, la declaración de conformidad
+// del empleado — no aplica a "No aprobado" porque ahí no hay continuidad
+// ni expectativas de mejora que aceptar. Se inserta como párrafo nuevo con
+// atributos explícitos (no copiados de un vecino) para no repetir el mismo
+// problema de tamaño/color heredado que tuvo el casillero de "APROBADO".
+function insertDeclaracionSiCorresponde(body, decision) {
+  var aplica = decision.indexOf('Aprobado') === 0 || decision.indexOf('Extensión') === 0;
+  if (!aplica) return;
+
+  var found = body.findText('Firma del Evaluador');
+  if (!found) return;
+  var labelPara = found.getElement();
+  while (labelPara && labelPara.getType() !== DocumentApp.ElementType.PARAGRAPH) {
+    labelPara = labelPara.getParent();
+  }
+  var underscoreEl = labelPara ? labelPara.getPreviousSibling() : null;
+  if (!underscoreEl) return;
+
+  var texto = 'Declaro haber tomado conocimiento de la presente evaluación y asumo el ' +
+    'compromiso de considerar las observaciones recibidas, orientando mis acciones a la ' +
+    'mejora continua y al cumplimiento de las expectativas del puesto.';
+  var insertIndex = body.getChildIndex(underscoreEl);
+  var declPara = body.insertParagraph(insertIndex, texto);
+  var declText = declPara.editAsText();
+  declText.setBold(false);
+  declText.setItalic(false);
+  declText.setFontSize(11);
+  declText.setForegroundColor('#000000');
+  declPara.setSpacingBefore(10).setSpacingAfter(10);
+}
+
 function checkboxTrio(valor) {
   function box(n) { return (String(valor) === String(n) ? '☑ ' : '☐ ') + n; }
   return box(1) + ' ' + box(2) + ' ' + box(3);
@@ -360,6 +392,7 @@ function generarPdf(data) {
     checkedPrefix = 'NO APROBADO:';
   }
   convertResultadoChecklist(body, checkedPrefix);
+  insertDeclaracionSiCorresponde(body, decision);
 
   if (data.firmaBase64) {
     var found = body.findText('Firma del Evaluador');
