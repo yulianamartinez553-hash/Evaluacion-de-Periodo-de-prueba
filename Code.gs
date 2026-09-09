@@ -77,7 +77,7 @@ function doPost(e) {
     }
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v16' }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v17' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -371,33 +371,38 @@ function generarPdf(data) {
       var underscoreEl = labelPara ? labelPara.getPreviousSibling() : null;
       if (underscoreEl && underscoreEl.getType() === DocumentApp.ElementType.PARAGRAPH) {
         var underscorePara = underscoreEl.asParagraph();
-        var text = underscorePara.editAsText();
-        var raw = text.getText();
 
-        // El renglón en blanco arranca con un salto de línea suave y
-        // espacios sueltos antes de los guiones bajos del evaluador. Si se
-        // inserta la firma sin sacar eso primero, queda en su propia línea
-        // en blanco, flotando arriba de todo el bloque de firma. Se recorta
-        // hasta el primer "_" para que la imagen quede pegada justo al
-        // inicio del renglón del evaluador.
-        var firstDash = raw.indexOf('_');
-        if (firstDash > 0) {
-          text.deleteText(0, firstDash - 1);
-        }
-
+        // El renglón de guiones bajos es en realidad una sola línea de texto
+        // larga ("    ____________                         _____________")
+        // con las dos firmas (evaluador y empleado) separadas por espacios,
+        // ya usando casi todo el ancho de la página. Insertarla como imagen
+        // en línea (dentro del texto) le suma su ancho a ese renglón, y si
+        // es lo bastante grande empuja el segundo grupo de guiones (el del
+        // empleado) al renglón siguiente, rompiendo el layout de las dos
+        // firmas lado a lado — eso era lo que pasaba. Como imagen
+        // POSICIONADA (flotante, anclada al párrafo pero fuera del flujo
+        // del texto) puede ser tan grande como haga falta sin afectar en
+        // nada el ancho del renglón.
         var base64 = data.firmaBase64.indexOf(',') > -1 ? data.firmaBase64.split(',')[1] : data.firmaBase64;
         var imgBlob = Utilities.newBlob(Utilities.base64Decode(base64), 'image/png', 'firma.png');
-        var img = underscorePara.insertInlineImage(0, imgBlob);
+        var img = underscorePara.addPositionedImage(imgBlob);
 
         // El frontend ya recorta la firma a su trazo real (sin el espacio en
         // blanco de sobra del recuadro), así que acá solo hace falta
-        // escalarla manteniendo proporción dentro de un tamaño fijo. El
-        // límite queda apenas por debajo del espacio disponible en el
-        // renglón para que no empuje el bloque de firma a la hoja siguiente.
-        var maxW = 160, maxH = 50;
+        // escalarla manteniendo proporción dentro de un tamaño fijo.
+        var maxW = 150, maxH = 40;
         var naturalW = img.getWidth(), naturalH = img.getHeight();
         var scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
-        img.setWidth(Math.round(naturalW * scale)).setHeight(Math.round(naturalH * scale));
+        var w = Math.round(naturalW * scale);
+        var h = Math.round(naturalH * scale);
+        img.setWidth(w).setHeight(h);
+
+        // El renglón arranca con un salto de línea suave y espacios sueltos
+        // antes de los guiones bajos del evaluador (el "espacio en blanco"
+        // pensado para firmar a mano) — la firma se ancla ahí, pegada al
+        // margen izquierdo y apoyada sobre el renglón del evaluador.
+        img.setLeftOffset(12);
+        img.setTopOffset(Math.max(0, 20 - h));
       }
     }
   }
