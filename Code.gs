@@ -77,7 +77,7 @@ function doPost(e) {
     }
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v14' }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v15' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -203,14 +203,17 @@ function convertResultadoChecklist(body, checkedPrefix) {
   }
   if (!targets.length) return;
 
-  // "APROBADO" es siempre el primero de los tres (el más pegado al título
-  // "RESULTADO DEL PERIODO DE PRUEBA" de arriba) y, al copiar sus propios
-  // atributos con getAttributes(), termina con una letra mucho más chica que
-  // los otros dos — algo propio de esa posición pegada al título, no del
-  // contenido en sí. Los tres usan el mismo formato (el del último ítem del
-  // grupo, que sí sale bien de forma consistente) en vez de que cada uno
-  // copie el suyo.
+  // "APROBADO" es siempre el primero de los tres, pegado al título
+  // "RESULTADO DEL PERIODO DE PRUEBA" de arriba. Entre el título y
+  // "APROBADO" la plantilla tiene un párrafo invisible de solo espaciado
+  // con letra de 1pt. Ni "APROBADO" ni los otros dos especifican su propio
+  // tamaño de letra (dependen del tamaño por defecto del documento, 11pt),
+  // así que copiar los atributos de cualquiera de los tres nunca trae un
+  // FONT_SIZE explícito para forzar — y el párrafo nuevo que se inserta en
+  // el lugar de "APROBADO" hereda el 1pt del espaciador de al lado en vez
+  // del 11pt por defecto. Por eso el tamaño se fuerza acá explícitamente.
   var referenceAttrs = copyStyleAttrs(targets[targets.length - 1].item.getAttributes());
+  referenceAttrs[DocumentApp.Attribute.FONT_SIZE] = 11;
 
   // De atrás para adelante para que insertar/quitar párrafos no corra los
   // índices de los elementos que todavía faltan procesar.
