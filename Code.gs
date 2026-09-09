@@ -77,7 +77,7 @@ function doPost(e) {
     }
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v8' }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v9' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -109,6 +109,12 @@ function formatDateEs(isoDate) {
 // mejora:", o las 3 líneas en blanco debajo de "Recomendaciones del
 // desempeño:" (separadas por líneas horizontales sueltas, que se saltean).
 function fillItemsBelow(body, labelText, items) {
+  // items debe ser un arreglo de hasta 3 ítems. Si llegara un string suelto
+  // se lo trata como un único ítem (y no como si fuera un arreglo de
+  // caracteres, que es lo que pasa si se indexa un string directamente con
+  // items[0], items[1], items[2] en Apps Script).
+  var arr = Array.isArray(items) ? items : (items ? [items] : []);
+
   var found = body.findText(labelText);
   if (!found) return;
   var el = found.getElement();
@@ -123,7 +129,7 @@ function fillItemsBelow(body, labelText, items) {
     var type = child.getType();
     if (type === DocumentApp.ElementType.HORIZONTAL_RULE) { i++; continue; }
     if (type !== DocumentApp.ElementType.LIST_ITEM && type !== DocumentApp.ElementType.PARAGRAPH) break;
-    var value = (items && items[filled]) ? String(items[filled]).trim() : '';
+    var value = arr[filled] ? String(arr[filled]).trim() : '';
     if (value) child.editAsText().setText(value);
     filled++;
     i++;
@@ -131,26 +137,41 @@ function fillItemsBelow(body, labelText, items) {
 }
 
 // Los tres renglones de "RESULTADO DEL PERIODO DE PRUEBA" son un checklist
-// nativo de Google Docs (lista con casillero tildable), no imágenes ni
-// texto con "☐" — por eso se marcan con ListItem.setChecked(), el método
-// nativo de Apps Script para checklists, en vez de buscar/reemplazar una
-// imagen dentro del párrafo.
-function markDecisionCheckbox(body, prefix) {
+// nativo de Google Docs (lista con casillero tildable). ListItem.setChecked()
+// no tira error pero tampoco se refleja de forma confiable en el PDF
+// exportado, así que en vez de eso se convierte cada ítem en un párrafo de
+// texto plano con "☐ "/"☑ " al principio — el mismo mecanismo que ya se usa
+// para los casilleros de la tabla de criterios de arriba — para pintar solo
+// el casillero y no toda la frase.
+function convertResultadoChecklist(body, checkedPrefix) {
+  var prefixes = ['APROBADO:', 'EXTENSIÓN DEL PERIODO DE PRUEBA:', 'NO APROBADO:'];
+  var targets = [];
   for (var i = 0; i < body.getNumChildren(); i++) {
     var child = body.getChild(i);
     if (child.getType() !== DocumentApp.ElementType.LIST_ITEM) continue;
     var item = child.asListItem();
-    if (item.getText().indexOf(prefix) !== 0) continue;
-    try {
-      item.setChecked(true);
-    } catch (err) {
-      // No es un checklist tildable para la API (setChecked tiró error) —
-      // se marca resaltando el texto en vez de romper la generación del PDF.
-      item.editAsText().setBold(true).setForegroundColor('#1c7a3c');
+    var text = item.getText();
+    for (var p = 0; p < prefixes.length; p++) {
+      if (text.indexOf(prefixes[p]) === 0) {
+        targets.push({ index: i, item: item, text: text, checked: prefixes[p] === checkedPrefix });
+        break;
+      }
     }
-    return true;
   }
-  return false;
+  // De atrás para adelante para que insertar/quitar párrafos no corra los
+  // índices de los elementos que todavía faltan procesar.
+  for (var t = targets.length - 1; t >= 0; t--) {
+    var target = targets[t];
+    var box = target.checked ? '☑ ' : '☐ ';
+    var attrs = target.item.getAttributes();
+    var newPara = body.insertParagraph(target.index, box + target.text);
+    // getAttributes() de un ListItem trae también atributos propios de listas
+    // (GLYPH_TYPE, LIST_ID, NESTING_LEVEL) que un Paragraph no soporta; si
+    // setAttributes los rechaza, se sigue igual con el estilo por defecto
+    // en vez de romper la generación del PDF por un detalle visual menor.
+    try { newPara.setAttributes(attrs); } catch (attrErr) {}
+    body.removeChild(body.getChild(target.index + 1));
+  }
 }
 
 function checkboxTrio(valor) {
@@ -243,13 +264,15 @@ function generarPdf(data) {
   fillItemsBelow(body, 'Recomendaciones del desempeño:', data.recomendaciones);
 
   var decision = data.decision || '';
+  var checkedPrefix = '';
   if (decision.indexOf('Aprobado') === 0) {
-    markDecisionCheckbox(body, 'APROBADO:');
+    checkedPrefix = 'APROBADO:';
   } else if (decision.indexOf('Extensión') === 0) {
-    markDecisionCheckbox(body, 'EXTENSIÓN DEL PERIODO DE PRUEBA:');
+    checkedPrefix = 'EXTENSIÓN DEL PERIODO DE PRUEBA:';
   } else if (decision.indexOf('No aprobado') === 0) {
-    markDecisionCheckbox(body, 'NO APROBADO:');
+    checkedPrefix = 'NO APROBADO:';
   }
+  convertResultadoChecklist(body, checkedPrefix);
 
   if (data.firmaBase64) {
     var found = body.findText('Firma del Evaluador');
@@ -281,8 +304,10 @@ function generarPdf(data) {
 
         // El frontend ya recorta la firma a su trazo real (sin el espacio en
         // blanco de sobra del recuadro), así que acá solo hace falta
-        // escalarla manteniendo proporción dentro de un tamaño fijo chico.
-        var maxW = 110, maxH = 34;
+        // escalarla manteniendo proporción dentro de un tamaño fijo. El
+        // límite queda apenas por debajo del espacio disponible en el
+        // renglón para que no empuje el bloque de firma a la hoja siguiente.
+        var maxW = 160, maxH = 50;
         var naturalW = img.getWidth(), naturalH = img.getHeight();
         var scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
         img.setWidth(Math.round(naturalW * scale)).setHeight(Math.round(naturalH * scale));

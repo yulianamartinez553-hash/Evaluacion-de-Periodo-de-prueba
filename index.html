@@ -317,11 +317,17 @@
   }
   .field-group{ margin-bottom:20px; }
   .field-group > p.field-title{
-    margin:0 0 10px;
+    margin:0 0 6px;
     font-size:14px;
     font-weight:700;
   }
-  .final textarea{
+  .field-hint{
+    margin:0 0 10px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .item-triplet{ display:flex; flex-direction:column; gap:8px; }
+  .item-input{
     width:100%;
     font:inherit;
     font-size:14px;
@@ -329,9 +335,7 @@
     background:var(--bg);
     border:1px solid var(--line-strong);
     border-radius:7px;
-    padding:10px 12px;
-    resize:vertical;
-    min-height:64px;
+    padding:9px 12px;
   }
   .auto-note{
     margin:0 0 20px;
@@ -485,15 +489,30 @@
 
       <div class="field-group">
         <p class="field-title">Fortalezas del empleado</p>
-        <textarea id="f-fortalezas" placeholder="Describa los puntos fuertes observados durante el período de prueba…"></textarea>
+        <p class="field-hint">Complete al menos uno de los tres ítems.</p>
+        <div class="item-triplet">
+          <input type="text" class="item-input" id="f-fortalezas-1" placeholder="Ítem 1">
+          <input type="text" class="item-input" id="f-fortalezas-2" placeholder="Ítem 2">
+          <input type="text" class="item-input" id="f-fortalezas-3" placeholder="Ítem 3">
+        </div>
       </div>
       <div class="field-group">
         <p class="field-title">Áreas de mejora</p>
-        <textarea id="f-mejora" placeholder="Describa los aspectos a reforzar…"></textarea>
+        <p class="field-hint">Complete al menos uno de los tres ítems.</p>
+        <div class="item-triplet">
+          <input type="text" class="item-input" id="f-mejora-1" placeholder="Ítem 1">
+          <input type="text" class="item-input" id="f-mejora-2" placeholder="Ítem 2">
+          <input type="text" class="item-input" id="f-mejora-3" placeholder="Ítem 3">
+        </div>
       </div>
       <div class="field-group">
         <p class="field-title">Recomendaciones del desempeño</p>
-        <textarea id="f-recomendaciones" placeholder="Recomendaciones concretas para el próximo período…"></textarea>
+        <p class="field-hint">Complete al menos uno de los tres ítems.</p>
+        <div class="item-triplet">
+          <input type="text" class="item-input" id="f-recomendaciones-1" placeholder="Ítem 1">
+          <input type="text" class="item-input" id="f-recomendaciones-2" placeholder="Ítem 2">
+          <input type="text" class="item-input" id="f-recomendaciones-3" placeholder="Ítem 3">
+        </div>
       </div>
 
       <div class="sign-row">
@@ -834,6 +853,13 @@
   // URL del Web App de Apps Script (Implementar > Nueva implementación > Aplicación web).
   var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGB8rm2Aw7mbR9vrBKT8NxESpIZohN1QyJ_2mWd4flgTrv91ucK2Yw3CvQVUkD4bSWlw/exec';
 
+  function getTriplet(prefix){
+    return [1,2,3].map(function(n){
+      var el = document.getElementById(prefix + '-' + n);
+      return el ? el.value.trim() : '';
+    }).filter(function(v){ return v; });
+  }
+
   function buildPayload(){
     var payload = {
       nombre: document.getElementById('f-nombre').value.trim(),
@@ -846,9 +872,9 @@
       puntaje: lastResult.rounded,
       banda: lastResult.band,
       decision: lastResult.decision,
-      fortalezas: document.getElementById('f-fortalezas').value.trim(),
-      mejora: document.getElementById('f-mejora').value.trim(),
-      recomendaciones: document.getElementById('f-recomendaciones').value.trim(),
+      fortalezas: getTriplet('f-fortalezas'),
+      mejora: getTriplet('f-mejora'),
+      recomendaciones: getTriplet('f-recomendaciones'),
       firmaBase64: sigCanvas.toDataURL('image/png')
     };
     Object.keys(answers).forEach(function(key){ payload.criteria[key] = answers[key]; });
