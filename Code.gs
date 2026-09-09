@@ -77,7 +77,7 @@ function doPost(e) {
     }
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v10' }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v12' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -224,8 +224,17 @@ function checkboxTrio(valor) {
 // en la celda equivocada cuando el texto de la celda quedaba dividido en
 // más de un "run" interno — por eso "Nombre del empleado" y "Puesto"
 // aparecían vacíos y sus valores se colaban en la celda de "Inicio del
-// período de prueba". Al operar sobre el texto de cada celda por separado
-// ese problema no puede ocurrir.
+// período de prueba".
+//
+// Dentro de cada celda tampoco se puede reemplazar el texto completo con
+// setText(): la etiqueta ("NOMBRE Y APELLIDO") y el token ("{{Nombre del
+// empleado}}") son dos "runs" con formato distinto (el token está en
+// cursiva en la plantilla, para marcarlo como casillero a completar), y
+// setText() aplana toda la celda a un solo estilo — eso era lo que hacía
+// que el valor completado se viera con una letra distinta a la del resto
+// del documento. Por eso acá se borra e inserta solo el texto del token en
+// su lugar (sin tocar la etiqueta) y se le saca la cursiva al valor ya
+// completado.
 function fillHeaderTokens(body, data) {
   var values = {
     'Inicio del período de prueba': formatDateEs(data.fechaInicio),
@@ -234,18 +243,28 @@ function fillHeaderTokens(body, data) {
     'Evaluador': data.evaluador || '',
     'Fecha de evaluación': formatDateEs(data.fechaEvaluacion)
   };
+  var tokenRegex = /\{\{([^}]+)\}\}/;
   body.getTables().forEach(function(table){
     for (var r = 0; r < table.getNumRows(); r++) {
       var row = table.getRow(r);
       for (var c = 0; c < row.getNumCells(); c++) {
         var cell = row.getCell(c);
-        var cellText = cell.getText();
+        var text = cell.editAsText();
+        var cellText = text.getText();
         if (cellText.indexOf('{{') === -1) continue;
-        var newText = cellText.replace(/\{\{([^}]+)\}\}/g, function(match, token) {
-          var key = token.trim();
-          return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : '';
-        });
-        cell.editAsText().setText(newText);
+        var match;
+        while ((match = tokenRegex.exec(cellText)) !== null) {
+          var key = match[1].trim();
+          var value = Object.prototype.hasOwnProperty.call(values, key) ? values[key] : '';
+          var start = match.index;
+          var end = start + match[0].length - 1;
+          text.deleteText(start, end);
+          if (value) {
+            text.insertText(start, value);
+            text.setItalic(start, start + value.length - 1, false);
+          }
+          cellText = text.getText();
+        }
       }
     }
   });
