@@ -1,4 +1,4 @@
-var TEMPLATE_DOC_ID = '1_29jlaNih3cx33WE8zrmwvkQ9SrWlS54';
+var TEMPLATE_DOC_ID = '1gXFToCsxJm-lDhxoEyTnyf5nzmKuRNX539uQkS2gtYQ';
 
 // Orden real de los 28 criterios tal como aparecen en la tabla del documento
 // original (de arriba hacia abajo). No se identifican por nombre porque
@@ -15,6 +15,17 @@ var CRITERIA_ORDER = [
   'clientes__contacto', 'clientes__respuesta', 'clientes__orientacion', 'clientes__resolucion_cliente',
   'comunicacion__claridad', 'comunicacion__conflictos'
 ];
+
+// El formulario manda fortalezas/mejora/recomendaciones como arreglo de
+// hasta 3 ítems (uno por viñeta/línea de la plantilla). Para la planilla se
+// unen en un solo texto por columna.
+function joinItems(value) {
+  var arr = Array.isArray(value) ? value : [value];
+  return arr
+    .filter(function(v){ return v && String(v).trim(); })
+    .map(function(v){ return String(v).trim(); })
+    .join(' | ');
+}
 
 function doPost(e) {
   try {
@@ -44,9 +55,9 @@ function doPost(e) {
       data.puntaje || 0,
       data.banda || '',
       data.decision || '',
-      data.fortalezas || '',
-      data.mejora || '',
-      data.recomendaciones || '',
+      joinItems(data.fortalezas),
+      joinItems(data.mejora),
+      joinItems(data.recomendaciones),
       ''
     ];
 
@@ -57,7 +68,7 @@ function doPost(e) {
     var pdfUrl = generarPdf(data);
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v7' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -82,6 +93,59 @@ function safeReplacement(value) {
     .replace(/\$/g, '\\$');
 }
 
+// Convierte una fecha ISO ("2026-09-07", tal como la entrega <input type="date">)
+// a formato local "07/09/2026". Se hace con split de string en vez de un
+// objeto Date para no correr riesgo de que el huso horario del script corra
+// el día.
+function formatDateEs(isoDate) {
+  var parts = String(isoDate || '').split('-');
+  if (parts.length !== 3) return isoDate || '';
+  return parts[2] + '/' + parts[1] + '/' + parts[0];
+}
+
+// Escribe hasta 3 ítems en los elementos que siguen a la etiqueta indicada:
+// las 3 viñetas vacías debajo de "Fortalezas del empleado:"/"Áreas de
+// mejora:", o las 3 líneas en blanco debajo de "Recomendaciones del
+// desempeño:" (separadas por líneas horizontales sueltas, que se saltean).
+function fillItemsBelow(body, labelText, items) {
+  var found = body.findText(labelText);
+  if (!found) return;
+  var el = found.getElement();
+  while (el && el.getType() !== DocumentApp.ElementType.LIST_ITEM && el.getType() !== DocumentApp.ElementType.PARAGRAPH) {
+    el = el.getParent();
+  }
+  if (!el) return;
+  var i = body.getChildIndex(el) + 1;
+  var filled = 0;
+  while (filled < 3 && i < body.getNumChildren()) {
+    var child = body.getChild(i);
+    var type = child.getType();
+    if (type === DocumentApp.ElementType.HORIZONTAL_RULE) { i++; continue; }
+    if (type !== DocumentApp.ElementType.LIST_ITEM && type !== DocumentApp.ElementType.PARAGRAPH) break;
+    var value = (items && items[filled]) ? String(items[filled]).trim() : '';
+    if (value) child.editAsText().setText(value);
+    filled++;
+    i++;
+  }
+}
+
+// Los tres renglones de "RESULTADO DEL PERIODO DE PRUEBA" son un checklist
+// nativo de Google Docs (lista con casillero tildable), no imágenes ni
+// texto con "☐" — por eso se marcan con ListItem.setChecked(), el método
+// nativo de Apps Script para checklists, en vez de buscar/reemplazar una
+// imagen dentro del párrafo.
+function markDecisionCheckbox(body, prefix) {
+  for (var i = 0; i < body.getNumChildren(); i++) {
+    var child = body.getChild(i);
+    if (child.getType() !== DocumentApp.ElementType.LIST_ITEM) continue;
+    var item = child.asListItem();
+    if (item.getText().indexOf(prefix) !== 0) continue;
+    item.setChecked(true);
+    return true;
+  }
+  return false;
+}
+
 function checkboxTrio(valor) {
   function box(n) { return (String(valor) === String(n) ? '☑ ' : '☐ ') + n; }
   return box(1) + ' ' + box(2) + ' ' + box(3);
@@ -97,42 +161,27 @@ function generarPdf(data) {
   var doc = DocumentApp.openById(copyFile.getId());
   var body = doc.getBody();
 
-  if (data.debug) {
-    var dbgTables = body.getTables();
-    body.insertParagraph(0, 'DEBUG_TABLE_COUNT=' + dbgTables.length);
-    for (var dbi = 0; dbi < Math.min(dbgTables.length, 6); dbi++) {
-      var dbgRows = [];
-      for (var dbr = 0; dbr < dbgTables[dbi].getNumRows(); dbr++) {
-        var dbgCells = [];
-        for (var dbc = 0; dbc < dbgTables[dbi].getRow(dbr).getNumCells(); dbc++) {
-          dbgCells.push(dbgTables[dbi].getRow(dbr).getCell(dbc).getText());
-        }
-        dbgRows.push('[' + dbgCells.join(' ~~ ') + ']');
-      }
-      body.insertParagraph(dbi + 1, 'DEBUG_T' + dbi + '=' + dbgRows.join(' // '));
-    }
-  }
-
-  // El documento usa campos de combinación {{...}}, no líneas con guion bajo.
-  body.replaceText('\\{\\{Inicio del período de prueba\\}\\}', safeReplacement(data.fechaInicio));
+  // La plantilla usa tokens {{...}} en su propia línea (no "Etiqueta: ___").
+  body.replaceText('\\{\\{Inicio del período de prueba\\}\\}', safeReplacement(formatDateEs(data.fechaInicio)));
   body.replaceText('\\{\\{Nombre del empleado\\}\\}', safeReplacement(data.nombre));
   body.replaceText('\\{\\{Puesto\\}\\}', safeReplacement(data.puesto));
   body.replaceText('\\{\\{Evaluador\\}\\}', safeReplacement(data.evaluador));
-  body.replaceText('\\{\\{Fecha de evaluación\\}\\}', safeReplacement(data.fechaEvaluacion));
+  body.replaceText('\\{\\{Fecha de evaluación\\}\\}', safeReplacement(formatDateEs(data.fechaEvaluacion)));
 
-  // Recorre TODAS las tablas del documento (ahora hay varias antes de la de
-  // criterios: logo, datos del evaluado, datos del evaluador) y marca el
-  // casillero de cada criterio ya respondido, dejando intactos los que no
-  // aplican. No se asume que la tabla de criterios sea la primera.
+  // El documento tiene varias tablas pequeñas de layout para el encabezado
+  // además de la tabla grande de criterios, así que hay que recorrerlas todas
+  // (no asumir que la primera es la de criterios). Se identifica la fila de
+  // datos por tener "☐" en la 3ra celda (las filas de título de sección no
+  // lo tienen) y se marca el casillero de cada criterio ya respondido,
+  // dejando intactos (en blanco) los que no aplican.
   var tables = body.getTables();
   var matched = 0;
-  for (var t = 0; t < tables.length; t++) {
-    var table = tables[t];
+  tables.forEach(function(table){
     for (var r = 0; r < table.getNumRows(); r++) {
       var row = table.getRow(r);
       if (row.getNumCells() < 3) continue;
       var calCell = row.getCell(2);
-      if (calCell.getText().indexOf('☐') === -1) continue; // fila de título de sección o encabezado
+      if (calCell.getText().indexOf('☐') === -1) continue;
       var key = CRITERIA_ORDER[matched];
       matched++;
       var valor = key ? criteria[key] : undefined;
@@ -140,7 +189,7 @@ function generarPdf(data) {
         calCell.editAsText().setText(checkboxTrio(valor));
       }
     }
-  }
+  });
 
   var banda = data.banda || '';
   if (banda.indexOf('bajo') > -1) {
@@ -151,31 +200,54 @@ function generarPdf(data) {
     body.replaceText('☐ 3 – DESEMPEÑO ALTO', '☑ 3 – DESEMPEÑO ALTO');
   }
 
-  body.replaceText('Fortalezas del empleado:', 'Fortalezas del empleado: ' + safeReplacement(data.fortalezas));
-  body.replaceText('Áreas de mejora:', 'Áreas de mejora: ' + safeReplacement(data.mejora));
-  body.replaceText('Recomendaciones del desempeño:', 'Recomendaciones del desempeño: ' + safeReplacement(data.recomendaciones));
+  fillItemsBelow(body, 'Fortalezas del empleado:', data.fortalezas);
+  fillItemsBelow(body, 'Áreas de mejora:', data.mejora);
+  fillItemsBelow(body, 'Recomendaciones del desempeño:', data.recomendaciones);
 
   var decision = data.decision || '';
   if (decision.indexOf('Aprobado') === 0) {
-    body.replaceText('APROBADO: Se confirma la contratación a largo plazo\\.', '☑ APROBADO: Se confirma la contratación a largo plazo.');
+    markDecisionCheckbox(body, 'APROBADO:');
   } else if (decision.indexOf('Extensión') === 0) {
-    body.replaceText('EXTENSIÓN DEL PERIODO DE PRUEBA: Se solicita más tiempo para evaluar el desempeño\\.', '☑ EXTENSIÓN DEL PERIODO DE PRUEBA: Se solicita más tiempo para evaluar el desempeño.');
+    markDecisionCheckbox(body, 'EXTENSIÓN DEL PERIODO DE PRUEBA:');
   } else if (decision.indexOf('No aprobado') === 0) {
-    body.replaceText('NO APROBADO: Se decide NO continuar con la relación laboral\\.', '☑ NO APROBADO: Se decide NO continuar con la relación laboral.');
+    markDecisionCheckbox(body, 'NO APROBADO:');
   }
 
   if (data.firmaBase64) {
     var found = body.findText('Firma del Evaluador');
     if (found) {
-      var el = found.getElement();
-      while (el && el.getType() !== DocumentApp.ElementType.PARAGRAPH) {
-        el = el.getParent();
+      var labelPara = found.getElement();
+      while (labelPara && labelPara.getType() !== DocumentApp.ElementType.PARAGRAPH) {
+        labelPara = labelPara.getParent();
       }
-      if (el) {
-        var idx = body.getChildIndex(el);
+      var underscoreEl = labelPara ? labelPara.getPreviousSibling() : null;
+      if (underscoreEl && underscoreEl.getType() === DocumentApp.ElementType.PARAGRAPH) {
+        var underscorePara = underscoreEl.asParagraph();
+        var text = underscorePara.editAsText();
+        var raw = text.getText();
+
+        // El renglón en blanco arranca con un salto de línea suave y
+        // espacios sueltos antes de los guiones bajos del evaluador. Si se
+        // inserta la firma sin sacar eso primero, queda en su propia línea
+        // en blanco, flotando arriba de todo el bloque de firma. Se recorta
+        // hasta el primer "_" para que la imagen quede pegada justo al
+        // inicio del renglón del evaluador.
+        var firstDash = raw.indexOf('_');
+        if (firstDash > 0) {
+          text.deleteText(0, firstDash - 1);
+        }
+
         var base64 = data.firmaBase64.indexOf(',') > -1 ? data.firmaBase64.split(',')[1] : data.firmaBase64;
         var imgBlob = Utilities.newBlob(Utilities.base64Decode(base64), 'image/png', 'firma.png');
-        body.insertImage(idx, imgBlob).setWidth(160).setHeight(60);
+        var img = underscorePara.insertInlineImage(0, imgBlob);
+
+        // El frontend ya recorta la firma a su trazo real (sin el espacio en
+        // blanco de sobra del recuadro), así que acá solo hace falta
+        // escalarla manteniendo proporción dentro de un tamaño fijo chico.
+        var maxW = 110, maxH = 34;
+        var naturalW = img.getWidth(), naturalH = img.getHeight();
+        var scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
+        img.setWidth(Math.round(naturalW * scale)).setHeight(Math.round(naturalH * scale));
       }
     }
   }
