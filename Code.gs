@@ -94,14 +94,6 @@ function getOrCreatePdfFolder() {
   return folders.hasNext() ? folders.next() : parentFolder.createFolder('PDFs - Evaluaciones');
 }
 
-// Escapa $ y \ para usar un valor arbitrario como reemplazo en replaceText
-// (Text.replaceText interpreta $1, \1, etc. como referencias de grupo).
-function safeReplacement(value) {
-  return String(value === undefined || value === null ? '' : value)
-    .replace(/\\/g, '\\\\')
-    .replace(/\$/g, '\\$');
-}
-
 // Convierte una fecha ISO ("2026-09-07", tal como la entrega <input type="date">)
 // a formato local "07/09/2026". Se hace con split de string en vez de un
 // objeto Date para no correr riesgo de que el huso horario del script corra
@@ -210,12 +202,9 @@ function generarPdf(data) {
   var doc = DocumentApp.openById(copyFile.getId());
   var body = doc.getBody();
 
-  // La plantilla usa tokens {{...}} en su propia línea (no "Etiqueta: ___").
-  body.replaceText('\\{\\{Inicio del período de prueba\\}\\}', safeReplacement(formatDateEs(data.fechaInicio)));
-  body.replaceText('\\{\\{Nombre del empleado\\}\\}', safeReplacement(data.nombre));
-  body.replaceText('\\{\\{Puesto\\}\\}', safeReplacement(data.puesto));
-  body.replaceText('\\{\\{Evaluador\\}\\}', safeReplacement(data.evaluador));
-  body.replaceText('\\{\\{Fecha de evaluación\\}\\}', safeReplacement(formatDateEs(data.fechaEvaluacion)));
+  // La plantilla usa tokens {{...}} dentro de celdas de tabla (ver
+  // fillHeaderTokens más abajo para por qué no se usa body.replaceText()).
+  fillHeaderTokens(body, data);
 
   // El documento tiene varias tablas pequeñas de layout para el encabezado
   // además de la tabla grande de criterios, así que hay que recorrerlas todas
