@@ -77,7 +77,7 @@ function doPost(e) {
     }
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v12' }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v13' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -201,13 +201,24 @@ function convertResultadoChecklist(body, checkedPrefix) {
       }
     }
   }
+  if (!targets.length) return;
+
+  // "APROBADO" es siempre el primero de los tres (el más pegado al título
+  // "RESULTADO DEL PERIODO DE PRUEBA" de arriba) y, al copiar sus propios
+  // atributos con getAttributes(), termina con una letra mucho más chica que
+  // los otros dos — algo propio de esa posición pegada al título, no del
+  // contenido en sí. Los tres usan el mismo formato (el del último ítem del
+  // grupo, que sí sale bien de forma consistente) en vez de que cada uno
+  // copie el suyo.
+  var referenceAttrs = copyStyleAttrs(targets[targets.length - 1].item.getAttributes());
+
   // De atrás para adelante para que insertar/quitar párrafos no corra los
   // índices de los elementos que todavía faltan procesar.
   for (var t = targets.length - 1; t >= 0; t--) {
     var target = targets[t];
     var box = target.checked ? '☑ ' : '☐ ';
     var newPara = body.insertParagraph(target.index, box + target.text);
-    newPara.setAttributes(copyStyleAttrs(target.item.getAttributes()));
+    newPara.setAttributes(referenceAttrs);
     body.removeChild(body.getChild(target.index + 1));
   }
 }
