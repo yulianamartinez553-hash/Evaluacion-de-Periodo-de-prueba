@@ -77,7 +77,7 @@ function doPost(e) {
     }
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v18' }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v19' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -419,6 +419,15 @@ function generarPdf(data) {
         var base64 = data.firmaBase64.indexOf(',') > -1 ? data.firmaBase64.split(',')[1] : data.firmaBase64;
         var imgBlob = Utilities.newBlob(Utilities.base64Decode(base64), 'image/png', 'firma.png');
         var img = underscorePara.addPositionedImage(imgBlob);
+
+        // addPositionedImage() deja por defecto un layout en el que el texto
+        // "esquiva" la imagen (la envuelve), así que igual puede empujar el
+        // segundo grupo de guiones a otro renglón según el tamaño/forma de
+        // la firma — pasó con una firma real (trazo a mano) aunque no con el
+        // logo cuadrado de prueba. ABOVE_TEXT hace que quede pegada arriba
+        // del texto sin que el texto le tenga que hacer lugar, sin importar
+        // el tamaño ni la forma.
+        img.setLayout(DocumentApp.PositionedLayout.ABOVE_TEXT);
 
         // El frontend ya recorta la firma a su trazo real (sin el espacio en
         // blanco de sobra del recuadro), así que acá solo hace falta
