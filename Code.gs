@@ -77,7 +77,7 @@ function doPost(e) {
     }
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v9' }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v10' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -104,16 +104,43 @@ function formatDateEs(isoDate) {
   return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
-// Escribe hasta 3 ítems en los elementos que siguen a la etiqueta indicada:
-// las 3 viñetas vacías debajo de "Fortalezas del empleado:"/"Áreas de
-// mejora:", o las 3 líneas en blanco debajo de "Recomendaciones del
-// desempeño:" (separadas por líneas horizontales sueltas, que se saltean).
+// getAttributes() de un ListItem trae también atributos propios de listas
+// (GLYPH_TYPE, LIST_ID, NESTING_LEVEL) que un elemento nuevo puede rechazar
+// según el caso; para copiar el formato de forma confiable (negrita, tamaño,
+// color, sangría, interlineado) se filtra a una lista fija de atributos de
+// texto/párrafo en vez de copiar el objeto entero tal cual.
+var COPYABLE_STYLE_ATTRS = [
+  DocumentApp.Attribute.BOLD, DocumentApp.Attribute.ITALIC, DocumentApp.Attribute.UNDERLINE,
+  DocumentApp.Attribute.STRIKETHROUGH, DocumentApp.Attribute.FONT_FAMILY, DocumentApp.Attribute.FONT_SIZE,
+  DocumentApp.Attribute.FOREGROUND_COLOR, DocumentApp.Attribute.BACKGROUND_COLOR,
+  DocumentApp.Attribute.INDENT_START, DocumentApp.Attribute.INDENT_END, DocumentApp.Attribute.INDENT_FIRST_LINE,
+  DocumentApp.Attribute.LINE_SPACING, DocumentApp.Attribute.SPACING_BEFORE, DocumentApp.Attribute.SPACING_AFTER,
+  DocumentApp.Attribute.HORIZONTAL_ALIGNMENT
+];
+function copyStyleAttrs(sourceAttrs) {
+  var filtered = {};
+  COPYABLE_STYLE_ATTRS.forEach(function(attr) {
+    if (sourceAttrs[attr] !== undefined && sourceAttrs[attr] !== null) filtered[attr] = sourceAttrs[attr];
+  });
+  return filtered;
+}
+
+// Escribe hasta 3 ítems como viñetas debajo de la etiqueta indicada
+// ("Fortalezas del empleado:", "Áreas de mejora:", "Recomendaciones del
+// desempeño:"). "Fortalezas"/"Mejora" ya traen 3 viñetas en blanco
+// preparadas en la plantilla y se reutilizan tal cual; "Recomendaciones"
+// solo trae 1, así que para el 2do/3er ítem se inserta una viñeta nueva con
+// el mismo estilo de lista en vez de pisar el párrafo de espaciado que le
+// sigue (eso pisaba el título "RESULTADO DEL PERIODO DE PRUEBA" o quedaba
+// con formato de espaciado en vez de viñeta).
 function fillItemsBelow(body, labelText, items) {
   // items debe ser un arreglo de hasta 3 ítems. Si llegara un string suelto
   // se lo trata como un único ítem (y no como si fuera un arreglo de
   // caracteres, que es lo que pasa si se indexa un string directamente con
   // items[0], items[1], items[2] en Apps Script).
   var arr = Array.isArray(items) ? items : (items ? [items] : []);
+  arr = arr.filter(function(v){ return v && String(v).trim(); }).map(function(v){ return String(v).trim(); });
+  if (!arr.length) return;
 
   var found = body.findText(labelText);
   if (!found) return;
@@ -122,17 +149,33 @@ function fillItemsBelow(body, labelText, items) {
     el = el.getParent();
   }
   if (!el) return;
+
   var i = body.getChildIndex(el) + 1;
-  var filled = 0;
-  while (filled < 3 && i < body.getNumChildren()) {
+  var anchor = null;
+  while (i < body.getNumChildren()) {
     var child = body.getChild(i);
-    var type = child.getType();
-    if (type === DocumentApp.ElementType.HORIZONTAL_RULE) { i++; continue; }
-    if (type !== DocumentApp.ElementType.LIST_ITEM && type !== DocumentApp.ElementType.PARAGRAPH) break;
-    var value = arr[filled] ? String(arr[filled]).trim() : '';
-    if (value) child.editAsText().setText(value);
-    filled++;
-    i++;
+    if (child.getType() === DocumentApp.ElementType.HORIZONTAL_RULE) { i++; continue; }
+    if (child.getType() === DocumentApp.ElementType.LIST_ITEM) { anchor = child.asListItem(); break; }
+    return; // la sección no tiene ninguna viñeta preparada para completar
+  }
+  if (!anchor) return;
+
+  anchor.setText(arr[0]);
+  var slot = i + 1;
+  for (var n = 1; n < Math.min(arr.length, 3); n++) {
+    var next = slot < body.getNumChildren() ? body.getChild(slot) : null;
+    if (next && next.getType() === DocumentApp.ElementType.LIST_ITEM && next.asListItem().getListId() === anchor.getListId()) {
+      // ya hay una viñeta en blanco lista para este ítem: se reutiliza.
+      next.asListItem().setText(arr[n]);
+    } else {
+      // no quedan viñetas preparadas: se inserta una nueva con el mismo
+      // estilo de lista que la primera, en vez de escribir sobre lo que
+      // venga después (que puede no ser una viñeta en absoluto).
+      var newItem = body.insertListItem(slot, arr[n]);
+      newItem.setAttributes(copyStyleAttrs(anchor.getAttributes()));
+      newItem.setListId(anchor);
+    }
+    slot++;
   }
 }
 
@@ -163,13 +206,8 @@ function convertResultadoChecklist(body, checkedPrefix) {
   for (var t = targets.length - 1; t >= 0; t--) {
     var target = targets[t];
     var box = target.checked ? '☑ ' : '☐ ';
-    var attrs = target.item.getAttributes();
     var newPara = body.insertParagraph(target.index, box + target.text);
-    // getAttributes() de un ListItem trae también atributos propios de listas
-    // (GLYPH_TYPE, LIST_ID, NESTING_LEVEL) que un Paragraph no soporta; si
-    // setAttributes los rechaza, se sigue igual con el estilo por defecto
-    // en vez de romper la generación del PDF por un detalle visual menor.
-    try { newPara.setAttributes(attrs); } catch (attrErr) {}
+    newPara.setAttributes(copyStyleAttrs(target.item.getAttributes()));
     body.removeChild(body.getChild(target.index + 1));
   }
 }
