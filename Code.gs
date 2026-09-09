@@ -77,7 +77,7 @@ function doPost(e) {
     }
     sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v15' }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v16' }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
@@ -205,15 +205,17 @@ function convertResultadoChecklist(body, checkedPrefix) {
 
   // "APROBADO" es siempre el primero de los tres, pegado al título
   // "RESULTADO DEL PERIODO DE PRUEBA" de arriba. Entre el título y
-  // "APROBADO" la plantilla tiene un párrafo invisible de solo espaciado
-  // con letra de 1pt. Ni "APROBADO" ni los otros dos especifican su propio
-  // tamaño de letra (dependen del tamaño por defecto del documento, 11pt),
-  // así que copiar los atributos de cualquiera de los tres nunca trae un
-  // FONT_SIZE explícito para forzar — y el párrafo nuevo que se inserta en
-  // el lugar de "APROBADO" hereda el 1pt del espaciador de al lado en vez
-  // del 11pt por defecto. Por eso el tamaño se fuerza acá explícitamente.
+  // "APROBADO" la plantilla tiene un párrafo invisible de solo espaciado,
+  // con letra de 1pt Y color azul (el mismo azul del título). Ni "APROBADO"
+  // ni los otros dos especifican su propio tamaño/color (dependen de los
+  // valores por defecto del documento: 11pt, negro), así que copiar los
+  // atributos de cualquiera de los tres nunca trae algo explícito para
+  // forzar — y el párrafo nuevo que se inserta en el lugar de "APROBADO"
+  // hereda el tamaño y el color del espaciador de al lado en vez de los
+  // valores por defecto. Por eso ambos se fuerzan acá explícitamente.
   var referenceAttrs = copyStyleAttrs(targets[targets.length - 1].item.getAttributes());
   referenceAttrs[DocumentApp.Attribute.FONT_SIZE] = 11;
+  referenceAttrs[DocumentApp.Attribute.FOREGROUND_COLOR] = '#000000';
 
   // De atrás para adelante para que insertar/quitar párrafos no corra los
   // índices de los elementos que todavía faltan procesar.
