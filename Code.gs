@@ -1,10 +1,10 @@
-var TEMPLATE_DOC_ID = '1gXFToCsxJm-lDhxoEyTnyf5nzmKuRNX539uQkS2gtYQ';
+var CHOFER_TEMPLATE_DOC_ID = '1gXFToCsxJm-lDhxoEyTnyf5nzmKuRNX539uQkS2gtYQ';
 
 // Orden real de los 28 criterios tal como aparecen en la tabla del documento
 // original (de arriba hacia abajo). No se identifican por nombre porque
 // "Adaptabilidad" aparece dos veces con el mismo texto — se identifican por
 // posición dentro de la tabla.
-var CRITERIA_ORDER = [
+var CHOFER_CRITERIA_ORDER = [
   'tarea__conocimiento', 'tarea__productividad', 'tarea__habilidad', 'tarea__calidad', 'tarea__resolucion',
   'actitud__normativa', 'actitud__profesionalismo', 'actitud__etica',
   'colaborativo__equipo', 'colaborativo__interpersonales', 'colaborativo__comunicacion_equipo', 'colaborativo__adapt_cambio',
@@ -15,6 +15,43 @@ var CRITERIA_ORDER = [
   'clientes__contacto', 'clientes__respuesta', 'clientes__orientacion', 'clientes__resolucion_cliente',
   'comunicacion__claridad', 'comunicacion__conflictos'
 ];
+
+var LOGISTICA_TEMPLATE_DOC_ID = '1nW745pIv7jEAcJvaOg8jaDWFXC_jLfx2c4zHRq3c0Sc';
+
+// [clave del criterio, etiqueta de columna en la planilla] en el mismo orden
+// en que aparecen las filas en la tabla del documento de Administrativo de
+// Logística (de arriba hacia abajo) — misma lógica de posición que Chofer.
+var LOGISTICA_FIELDS = [
+  ['tarea__conocimiento_tecnico', 'Desempeño en la Tarea - Conocimiento técnico del puesto'],
+  ['tarea__precision_calidad', 'Desempeño en la Tarea - Precisión y calidad'],
+  ['tarea__cumplimiento_plazos', 'Desempeño en la Tarea - Cumplimiento de plazos'],
+  ['exactian__manejo_tecnico', 'Gestión de Plataforma EXACTIAN y Documentación - Manejo técnico'],
+  ['exactian__gestion_vencimientos', 'Gestión de Plataforma EXACTIAN y Documentación - Gestión proactiva de vencimientos'],
+  ['exactian__resolucion_observaciones', 'Gestión de Plataforma EXACTIAN y Documentación - Resolución de observaciones y rechazos'],
+  ['exactian__completitud_documental', 'Gestión de Plataforma EXACTIAN y Documentación - Cumplimiento y completitud documental'],
+  ['operativa__coordinacion_logistica', 'Gestión Operativa del Servicio - Coordinación con logística'],
+  ['operativa__control_seguimiento', 'Gestión Operativa del Servicio - Control y seguimiento del servicio'],
+  ['operativa__imprevistos_operativos', 'Gestión Operativa del Servicio - Manejo de imprevistos operativos'],
+  ['actitud__normativa', 'Actitud y Comportamiento Profesional - Normativa interna'],
+  ['actitud__profesionalismo', 'Actitud y Comportamiento Profesional - Profesionalismo'],
+  ['actitud__etica', 'Actitud y Comportamiento Profesional - Ética'],
+  ['equipo_comunicacion__trabajo_equipo', 'Trabajo en Equipo y Comunicación - Trabajo en equipo'],
+  ['equipo_comunicacion__comunicacion', 'Trabajo en Equipo y Comunicación - Comunicación'],
+  ['mina_proveedores__trato_profesional', 'Relación con la Mina y Proveedores - Trato profesional'],
+  ['mina_proveedores__capacidad_respuesta', 'Relación con la Mina y Proveedores - Capacidad de respuesta'],
+  ['mina_proveedores__orientacion_servicio', 'Relación con la Mina y Proveedores - Orientación de servicio'],
+  ['puntualidad__puntualidad', 'Puntualidad y Asistencia - Puntualidad'],
+  ['puntualidad__asistencia', 'Puntualidad y Asistencia - Asistencia'],
+  ['aprendizaje__aprendizaje', 'Capacidad de Aprendizaje y Adaptación - Aprendizaje'],
+  ['aprendizaje__retroalimentacion', 'Capacidad de Aprendizaje y Adaptación - Apertura a la retroalimentación'],
+  ['aprendizaje__adaptabilidad', 'Capacidad de Aprendizaje y Adaptación - Adaptabilidad'],
+  ['decisiones__analitica', 'Análisis y Toma de Decisiones - Capacidad analítica'],
+  ['decisiones__toma_decisiones', 'Análisis y Toma de Decisiones - Toma de decisiones'],
+  ['decisiones__autonomia', 'Análisis y Toma de Decisiones - Autonomía'],
+  ['decisiones__gestion_tiempo', 'Análisis y Toma de Decisiones - Gestión del tiempo y prioridades']
+];
+var LOGISTICA_CRITERIA_ORDER = LOGISTICA_FIELDS.map(function(f) { return f[0]; });
+var LOGISTICA_SHEET_NAME = 'Administrativo de Logística';
 
 // El formulario manda fortalezas/mejora/recomendaciones como arreglo de
 // hasta 3 ítems (uno por viñeta/línea de la plantilla). Para la planilla se
@@ -30,59 +67,119 @@ function joinItems(value) {
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-    var criteria = data.criteria || {};
-
-    function c(key) { return criteria[key] !== undefined ? criteria[key] : ''; }
-
-    var row = [
-      new Date(),
-      data.nombre || '',
-      data.puesto || '',
-      data.fechaInicio || '',
-      data.fechaEvaluacion || '',
-      data.evaluador || '',
-      c('tarea__conocimiento'), c('tarea__productividad'), c('tarea__habilidad'), c('tarea__calidad'), c('tarea__resolucion'),
-      c('actitud__normativa'), c('actitud__profesionalismo'), c('actitud__etica'),
-      c('colaborativo__equipo'), c('colaborativo__interpersonales'), c('colaborativo__comunicacion_equipo'), c('colaborativo__adapt_cambio'),
-      c('puntualidad__puntualidad'), c('puntualidad__asistencia'),
-      c('aprender__aprendizaje'), c('aprender__mejora'), c('aprender__autoconocimiento'),
-      c('decisiones__analitica'), c('decisiones__toma_decisiones'), c('decisiones__adapt_imprevistos'),
-      c('seguridad__epp'), c('seguridad__normas_seguridad'),
-      data.clientesAplica ? 'Sí' : 'No',
-      c('clientes__contacto'), c('clientes__respuesta'), c('clientes__orientacion'), c('clientes__resolucion_cliente'),
-      c('comunicacion__claridad'), c('comunicacion__conflictos'),
-      data.puntaje || 0,
-      data.banda || '',
-      data.decision || '',
-      joinItems(data.fortalezas),
-      joinItems(data.mejora),
-      joinItems(data.recomendaciones),
-      ''
-    ];
-
-    sheet.appendRow(row);
-    var lastRow = sheet.getLastRow();
-    var lastCol = sheet.getLastColumn();
-
-    // Si la generación del PDF falla, la fila con las respuestas ya quedó
-    // guardada igual — se deja el error escrito en esa celda en vez de un
-    // link vacío sin explicación, para poder diagnosticarlo desde la
-    // planilla sin depender de los registros de ejecución de Apps Script.
-    var pdfUrl;
-    try {
-      pdfUrl = generarPdf(data);
-    } catch (pdfErr) {
-      pdfUrl = 'ERROR generando PDF: ' + String(pdfErr);
-    }
-    sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
-
-    return ContentService.createTextOutput(JSON.stringify({ ok: true, version: 'v19' }))
+    var result = data.rol === 'logistica' ? handleLogisticaSubmission(data) : handleChoferSubmission(data);
+    return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+function handleChoferSubmission(data) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var criteria = data.criteria || {};
+
+  function c(key) { return criteria[key] !== undefined ? criteria[key] : ''; }
+
+  var row = [
+    new Date(),
+    data.nombre || '',
+    data.puesto || '',
+    data.fechaInicio || '',
+    data.fechaEvaluacion || '',
+    data.evaluador || '',
+    c('tarea__conocimiento'), c('tarea__productividad'), c('tarea__habilidad'), c('tarea__calidad'), c('tarea__resolucion'),
+    c('actitud__normativa'), c('actitud__profesionalismo'), c('actitud__etica'),
+    c('colaborativo__equipo'), c('colaborativo__interpersonales'), c('colaborativo__comunicacion_equipo'), c('colaborativo__adapt_cambio'),
+    c('puntualidad__puntualidad'), c('puntualidad__asistencia'),
+    c('aprender__aprendizaje'), c('aprender__mejora'), c('aprender__autoconocimiento'),
+    c('decisiones__analitica'), c('decisiones__toma_decisiones'), c('decisiones__adapt_imprevistos'),
+    c('seguridad__epp'), c('seguridad__normas_seguridad'),
+    data.clientesAplica ? 'Sí' : 'No',
+    c('clientes__contacto'), c('clientes__respuesta'), c('clientes__orientacion'), c('clientes__resolucion_cliente'),
+    c('comunicacion__claridad'), c('comunicacion__conflictos'),
+    data.puntaje || 0,
+    data.banda || '',
+    data.decision || '',
+    joinItems(data.fortalezas),
+    joinItems(data.mejora),
+    joinItems(data.recomendaciones),
+    ''
+  ];
+
+  sheet.appendRow(row);
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+
+  // Si la generación del PDF falla, la fila con las respuestas ya quedó
+  // guardada igual — se deja el error escrito en esa celda en vez de un
+  // link vacío sin explicación, para poder diagnosticarlo desde la
+  // planilla sin depender de los registros de ejecución de Apps Script.
+  var pdfUrl;
+  try {
+    pdfUrl = generarPdf(data, CHOFER_TEMPLATE_DOC_ID, CHOFER_CRITERIA_ORDER);
+  } catch (pdfErr) {
+    pdfUrl = 'ERROR generando PDF: ' + String(pdfErr);
+  }
+  sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
+
+  return { ok: true, version: 'v20' };
+}
+
+function getOrCreateLogisticaSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(LOGISTICA_SHEET_NAME);
+  if (sheet) return sheet;
+
+  sheet = ss.insertSheet(LOGISTICA_SHEET_NAME);
+  var headers = ['Marca temporal', 'Nombre del empleado', 'Puesto', 'Inicio del período de prueba', 'Fecha de evaluación', 'Evaluador']
+    .concat(LOGISTICA_FIELDS.map(function(f) { return f[1]; }))
+    .concat(['Puntaje ponderado (%)', 'Banda de desempeño', 'Decisión automática', 'Fortalezas del empleado', 'Áreas de mejora', 'Recomendaciones del desempeño', 'Link PDF generado']);
+  sheet.appendRow(headers);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  return sheet;
+}
+
+function handleLogisticaSubmission(data) {
+  var sheet = getOrCreateLogisticaSheet();
+  var criteria = data.criteria || {};
+
+  var row = [
+    new Date(),
+    data.nombre || '',
+    data.puesto || '',
+    data.fechaInicio || '',
+    data.fechaEvaluacion || '',
+    data.evaluador || ''
+  ];
+  LOGISTICA_FIELDS.forEach(function(f) {
+    var key = f[0];
+    row.push(criteria[key] !== undefined ? criteria[key] : '');
+  });
+  row.push(
+    data.puntaje || 0,
+    data.banda || '',
+    data.decision || '',
+    joinItems(data.fortalezas),
+    joinItems(data.mejora),
+    joinItems(data.recomendaciones),
+    ''
+  );
+
+  sheet.appendRow(row);
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+
+  var pdfUrl;
+  try {
+    pdfUrl = generarPdf(data, LOGISTICA_TEMPLATE_DOC_ID, LOGISTICA_CRITERIA_ORDER);
+  } catch (pdfErr) {
+    pdfUrl = 'ERROR generando PDF: ' + String(pdfErr);
+  }
+  sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
+
+  return { ok: true, version: 'v20' };
 }
 
 function getOrCreatePdfFolder() {
@@ -334,11 +431,11 @@ function fillHeaderTokens(body, data) {
 
 // ---------- generación del PDF: se copia el documento original y solo se completan los valores ----------
 
-function generarPdf(data) {
+function generarPdf(data, templateDocId, criteriaOrder) {
   var folder = getOrCreatePdfFolder();
   var criteria = data.criteria || {};
 
-  var copyFile = DriveApp.getFileById(TEMPLATE_DOC_ID).makeCopy('tmp_evaluacion_' + new Date().getTime(), folder);
+  var copyFile = DriveApp.getFileById(templateDocId).makeCopy('tmp_evaluacion_' + new Date().getTime(), folder);
   var doc = DocumentApp.openById(copyFile.getId());
   var body = doc.getBody();
 
@@ -360,7 +457,7 @@ function generarPdf(data) {
       if (row.getNumCells() < 3) continue;
       var calCell = row.getCell(2);
       if (calCell.getText().indexOf('☐') === -1) continue;
-      var key = CRITERIA_ORDER[matched];
+      var key = criteriaOrder[matched];
       matched++;
       var valor = key ? criteria[key] : undefined;
       if (valor) {
