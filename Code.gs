@@ -124,7 +124,7 @@ function handleChoferSubmission(data) {
   }
   sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-  return { ok: true, version: 'v21' };
+  return { ok: true, version: 'v22' };
 }
 
 function getOrCreateLogisticaSheet() {
@@ -179,7 +179,7 @@ function handleLogisticaSubmission(data) {
   }
   sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-  return { ok: true, version: 'v21' };
+  return { ok: true, version: 'v22' };
 }
 
 function getOrCreatePdfFolder() {
@@ -339,7 +339,7 @@ function convertResultadoChecklist(body, checkedPrefix) {
 // ni expectativas de mejora que aceptar. Se inserta como párrafo nuevo con
 // atributos explícitos (no copiados de un vecino) para no repetir el mismo
 // problema de tamaño/color heredado que tuvo el casillero de "APROBADO".
-function insertDeclaracionSiCorresponde(body, decision) {
+function insertDeclaracionSiCorresponde(body, decision, nombre) {
   var aplica = decision.indexOf('Aprobado') === 0 || decision.indexOf('Extensión') === 0;
   if (!aplica) return;
 
@@ -352,9 +352,9 @@ function insertDeclaracionSiCorresponde(body, decision) {
   var underscoreEl = labelPara ? labelPara.getPreviousSibling() : null;
   if (!underscoreEl) return;
 
-  var texto = 'Declaro haber tomado conocimiento de la presente evaluación y asumo el ' +
+  var texto = 'Yo, ' + (nombre || '') + ', declaro haber tomado conocimiento de la presente evaluación y asumo el ' +
     'compromiso de considerar las observaciones recibidas, orientando mis acciones a la ' +
-    'mejora continua y al cumplimiento de las expectativas del puesto.';
+    'mejora continua y al cumplimiento de las expectativas del puesto el tiempo que lo requiera.';
   var insertIndex = body.getChildIndex(underscoreEl);
   var declPara = body.insertParagraph(insertIndex, texto);
   var declText = declPara.editAsText();
@@ -497,7 +497,7 @@ function generarPdf(data, templateDocId, criteriaOrder) {
     checkedPrefix = 'NO APROBADO:';
   }
   convertResultadoChecklist(body, checkedPrefix);
-  insertDeclaracionSiCorresponde(body, decision);
+  insertDeclaracionSiCorresponde(body, decision, data.nombre);
 
   if (data.firmaBase64) {
     var found = body.findText('Firma del Evaluador');
