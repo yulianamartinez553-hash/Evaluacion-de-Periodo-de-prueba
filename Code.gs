@@ -124,7 +124,7 @@ function handleChoferSubmission(data) {
   }
   sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-  return { ok: true, version: 'v20' };
+  return { ok: true, version: 'v21' };
 }
 
 function getOrCreateLogisticaSheet() {
@@ -179,7 +179,7 @@ function handleLogisticaSubmission(data) {
   }
   sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-  return { ok: true, version: 'v20' };
+  return { ok: true, version: 'v21' };
 }
 
 function getOrCreatePdfFolder() {
@@ -284,16 +284,23 @@ function fillItemsBelow(body, labelText, items) {
 // para los casilleros de la tabla de criterios de arriba — para pintar solo
 // el casillero y no toda la frase.
 function convertResultadoChecklist(body, checkedPrefix) {
-  var prefixes = ['APROBADO:', 'EXTENSIÓN DEL PERIODO DE PRUEBA:', 'NO APROBADO:'];
+  // Solo la opción marcada conserva la descripción larga después de los dos
+  // puntos; las otras dos quedan como la etiqueta sola (sin dos puntos ni
+  // descripción) para no dar a entender que aplican varias a la vez.
+  var options = [
+    { label: 'APROBADO', prefix: 'APROBADO:' },
+    { label: 'EXTENSIÓN DEL PERIODO DE PRUEBA', prefix: 'EXTENSIÓN DEL PERIODO DE PRUEBA:' },
+    { label: 'NO APROBADO', prefix: 'NO APROBADO:' }
+  ];
   var targets = [];
   for (var i = 0; i < body.getNumChildren(); i++) {
     var child = body.getChild(i);
     if (child.getType() !== DocumentApp.ElementType.LIST_ITEM) continue;
     var item = child.asListItem();
     var text = item.getText();
-    for (var p = 0; p < prefixes.length; p++) {
-      if (text.indexOf(prefixes[p]) === 0) {
-        targets.push({ index: i, item: item, text: text, checked: prefixes[p] === checkedPrefix });
+    for (var p = 0; p < options.length; p++) {
+      if (text.indexOf(options[p].prefix) === 0) {
+        targets.push({ index: i, item: item, text: text, label: options[p].label, checked: options[p].prefix === checkedPrefix });
         break;
       }
     }
@@ -319,7 +326,8 @@ function convertResultadoChecklist(body, checkedPrefix) {
   for (var t = targets.length - 1; t >= 0; t--) {
     var target = targets[t];
     var box = target.checked ? '☑ ' : '☐ ';
-    var newPara = body.insertParagraph(target.index, box + target.text);
+    var content = target.checked ? target.text : target.label;
+    var newPara = body.insertParagraph(target.index, box + content);
     newPara.setAttributes(referenceAttrs);
     body.removeChild(body.getChild(target.index + 1));
   }

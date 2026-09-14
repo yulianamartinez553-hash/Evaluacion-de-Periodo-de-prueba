@@ -17,8 +17,8 @@
     --accent-soft:#dce8f2;
     --low:#c23b3b;
     --low-soft:#f6dede;
-    --mid:#a8781f;
-    --mid-soft:#f2e6cd;
+    --mid:#0e7490;
+    --mid-soft:#d6eef4;
     --high:#1f3d81;
     --high-soft:#dde3f3;
     --pen:#1f3d81;
@@ -41,8 +41,8 @@
       --accent-soft:#25384a;
       --low:#e58a8a;
       --low-soft:#3d2323;
-      --mid:#dcb267;
-      --mid-soft:#3d3320;
+      --mid:#5ec8e3;
+      --mid-soft:#163741;
       --high:#7d97d6;
       --high-soft:#22305a;
       --pen:#1f3d81;
@@ -65,8 +65,8 @@
     --accent-soft:#25384a;
     --low:#e0847a;
     --low-soft:#402522;
-    --mid:#dcb267;
-    --mid-soft:#3d3320;
+    --mid:#5ec8e3;
+    --mid-soft:#163741;
     --high:#7fbf98;
     --high-soft:#203a2b;
     --focus:#7fb0dc;
@@ -289,7 +289,7 @@
   .seg-btn:focus-visible{ outline:2px solid var(--focus); outline-offset:-2px; }
   .seg-btn:disabled{ cursor:not-allowed; opacity:.5; }
   .seg-btn.seg-low.is-selected{ background:var(--low); color:#fff; }
-  .seg-btn.seg-mid.is-selected{ background:var(--mid); color:#241a06; }
+  .seg-btn.seg-mid.is-selected{ background:var(--mid); color:#fff; }
   .seg-btn.seg-high.is-selected{ background:var(--high); color:#fff; }
 
   .panel.is-disabled{ opacity:.55; }
@@ -449,7 +449,7 @@
     <img class="brand-logo" src="/assets/logo.png" alt="Servinorte SRL">
     <h1>Evaluación de Período de Prueba</h1>
     <div class="id-grid">
-      <label>Nombre del empleado
+      <label>Nombre del evaluado
         <input id="f-nombre" type="text" placeholder="Apellido y nombre">
       </label>
       <label>Puesto
