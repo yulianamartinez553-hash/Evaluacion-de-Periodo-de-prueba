@@ -124,7 +124,7 @@ function handleChoferSubmission(data) {
   }
   sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-  return { ok: true, version: 'v23' };
+  return { ok: true, version: 'v24' };
 }
 
 function getOrCreateLogisticaSheet() {
@@ -179,7 +179,7 @@ function handleLogisticaSubmission(data) {
   }
   sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-  return { ok: true, version: 'v23' };
+  return { ok: true, version: 'v24' };
 }
 
 function getOrCreatePdfFolder() {
@@ -506,16 +506,24 @@ function generarPdf(data, templateDocId, criteriaOrder) {
   // El documento tiene varias tablas pequeñas de layout para el encabezado
   // además de la tabla grande de criterios, así que hay que recorrerlas todas
   // (no asumir que la primera es la de criterios). Se identifica la fila de
-  // datos por tener "☐" en la 3ra celda (las filas de título de sección no
+  // datos por tener "☐" en su ÚLTIMA celda (las filas de título de sección no
   // lo tienen) y se marca el casillero de cada criterio ya respondido,
   // dejando intactos (en blanco) los que no aplican.
+  //
+  // La celda del casillero es la última de la fila, no una posición fija:
+  // la tabla de Chofer tiene 3 columnas (Criterio | Descripción |
+  // Calificación, casillero en el índice 2) pero la de Administrativo de
+  // Logística tiene solo 2 (nombre+descripción combinados | Calificación,
+  // casillero en el índice 1). Con un índice fijo en 2, todas las filas de
+  // Logística tenían menos de 3 celdas y quedaban salteadas sin marcar
+  // ningún casillero.
   var tables = body.getTables();
   var matched = 0;
   tables.forEach(function(table){
     for (var r = 0; r < table.getNumRows(); r++) {
       var row = table.getRow(r);
-      if (row.getNumCells() < 3) continue;
-      var calCell = row.getCell(2);
+      if (row.getNumCells() < 2) continue;
+      var calCell = row.getCell(row.getNumCells() - 1);
       if (calCell.getText().indexOf('☐') === -1) continue;
       var key = criteriaOrder[matched];
       matched++;
