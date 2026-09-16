@@ -124,7 +124,7 @@ function handleChoferSubmission(data) {
   }
   sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-  return { ok: true, version: 'v22' };
+  return { ok: true, version: 'v23' };
 }
 
 function getOrCreateLogisticaSheet() {
@@ -179,7 +179,7 @@ function handleLogisticaSubmission(data) {
   }
   sheet.getRange(lastRow, lastCol).setValue(pdfUrl);
 
-  return { ok: true, version: 'v22' };
+  return { ok: true, version: 'v23' };
 }
 
 function getOrCreatePdfFolder() {
@@ -230,6 +230,19 @@ function copyStyleAttrs(sourceAttrs) {
 // el mismo estilo de lista en vez de pisar el párrafo de espaciado que le
 // sigue (eso pisaba el título "RESULTADO DEL PERIODO DE PRUEBA" o quedaba
 // con formato de espaciado en vez de viñeta).
+//
+// La búsqueda de la etiqueta es sin distinguir mayúsculas/minúsculas
+// ("(?i)" al inicio del patrón de findText) porque la plantilla de
+// Administrativo de Logística terminó escribiendo estos títulos en
+// mayúsculas ("ÁREAS DE MEJORA:", "RECOMENDACIONES DEL DESEMPEÑO:")
+// mientras que la de Chofer los tiene en minúscula/mayúscula mixta — un
+// único texto de búsqueda sirve para las dos plantillas.
+//
+// Devuelve true si encontró la etiqueta y una viñeta lista para completar
+// (aunque no hubiera ítems que escribir), o false si la estructura
+// esperada (etiqueta + viñeta nativa) no está en el documento — así el
+// que llama puede intentar una estructura de plantilla alternativa en vez
+// de asumir que quedó completado.
 function fillItemsBelow(body, labelText, items) {
   // items debe ser un arreglo de hasta 3 ítems. Si llegara un string suelto
   // se lo trata como un único ítem (y no como si fuera un arreglo de
@@ -237,15 +250,14 @@ function fillItemsBelow(body, labelText, items) {
   // items[0], items[1], items[2] en Apps Script).
   var arr = Array.isArray(items) ? items : (items ? [items] : []);
   arr = arr.filter(function(v){ return v && String(v).trim(); }).map(function(v){ return String(v).trim(); });
-  if (!arr.length) return;
 
-  var found = body.findText(labelText);
-  if (!found) return;
+  var found = body.findText('(?i)' + labelText);
+  if (!found) return false;
   var el = found.getElement();
   while (el && el.getType() !== DocumentApp.ElementType.LIST_ITEM && el.getType() !== DocumentApp.ElementType.PARAGRAPH) {
     el = el.getParent();
   }
-  if (!el) return;
+  if (!el) return false;
 
   var i = body.getChildIndex(el) + 1;
   var anchor = null;
@@ -253,9 +265,10 @@ function fillItemsBelow(body, labelText, items) {
     var child = body.getChild(i);
     if (child.getType() === DocumentApp.ElementType.HORIZONTAL_RULE) { i++; continue; }
     if (child.getType() === DocumentApp.ElementType.LIST_ITEM) { anchor = child.asListItem(); break; }
-    return; // la sección no tiene ninguna viñeta preparada para completar
+    return false; // la sección no tiene ninguna viñeta preparada para completar
   }
-  if (!anchor) return;
+  if (!anchor) return false;
+  if (!arr.length) return true;
 
   anchor.setText(arr[0]);
   var slot = i + 1;
@@ -273,6 +286,45 @@ function fillItemsBelow(body, labelText, items) {
       newItem.setListId(anchor);
     }
     slot++;
+  }
+  return true;
+}
+
+// Variante de plantilla que apareció al actualizar el documento de
+// Administrativo de Logística: en vez de una etiqueta de texto seguida de
+// viñetas nativas, "Fortalezas" y "Áreas de mejora" ahora son cada una tres
+// tablas separadas de una sola celda ("1RA FORTALEZA DEL EMPLEADO", "2DA
+// FORTALEZA DEL EMPLEADO", "3RA FORTALEZA DEL EMPLEADO", etc.), con la
+// etiqueta en un párrafo y un párrafo vacío debajo (misma celda) para la
+// respuesta. Se usa solo como respaldo cuando fillItemsBelow() no encontró
+// la estructura de etiqueta + viñeta (así no afecta a la plantilla de
+// Chofer, que sigue usando la estructura original).
+function fillNumberedTableItems(body, labelTexts, items) {
+  var arr = Array.isArray(items) ? items : (items ? [items] : []);
+  arr = arr.filter(function(v){ return v && String(v).trim(); }).map(function(v){ return String(v).trim(); });
+  if (!arr.length) return;
+
+  for (var i = 0; i < labelTexts.length && i < arr.length; i++) {
+    var found = body.findText('(?i)' + labelTexts[i]);
+    if (!found) continue;
+    var labelPara = found.getElement();
+    while (labelPara && labelPara.getType() !== DocumentApp.ElementType.PARAGRAPH) {
+      labelPara = labelPara.getParent();
+    }
+    if (!labelPara) continue;
+
+    var cell = labelPara.getParent();
+    while (cell && cell.getType() !== DocumentApp.ElementType.TABLE_CELL) {
+      cell = cell.getParent();
+    }
+    if (!cell) continue;
+    var cellEl = cell.asTableCell();
+
+    var labelIndex = cellEl.getChildIndex(labelPara);
+    var answerPara = labelIndex + 1 < cellEl.getNumChildren() ? cellEl.getChild(labelIndex + 1) : null;
+    if (answerPara && answerPara.getType() === DocumentApp.ElementType.PARAGRAPH) {
+      answerPara.asParagraph().setText(arr[i]);
+    }
   }
 }
 
@@ -483,8 +535,12 @@ function generarPdf(data, templateDocId, criteriaOrder) {
     body.replaceText('☐ 3 – DESEMPEÑO ALTO', '☑ 3 – DESEMPEÑO ALTO');
   }
 
-  fillItemsBelow(body, 'Fortalezas del empleado:', data.fortalezas);
-  fillItemsBelow(body, 'Áreas de mejora:', data.mejora);
+  if (!fillItemsBelow(body, 'Fortalezas del empleado:', data.fortalezas)) {
+    fillNumberedTableItems(body, ['1RA FORTALEZA DEL EMPLEADO', '2DA FORTALEZA DEL EMPLEADO', '3RA FORTALEZA DEL EMPLEADO'], data.fortalezas);
+  }
+  if (!fillItemsBelow(body, 'Áreas de mejora:', data.mejora)) {
+    fillNumberedTableItems(body, ['1RA ÁREA DE MEJORA', '2DA ÁREA DE MEJORA', '3RA ÁREA DE MEJORA'], data.mejora);
+  }
   fillItemsBelow(body, 'Recomendaciones del desempeño:', data.recomendaciones);
 
   var decision = data.decision || '';
