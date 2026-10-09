@@ -1,6 +1,5 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/evaluacion-periodo-prueba.html" },
     { "source": "/logistica", "destination": "/administrativo-logistica.html" }
   ]
 }
