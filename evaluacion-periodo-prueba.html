@@ -544,50 +544,50 @@
 (function(){
   var sections = [
     { id:'tarea', title:'Desempeño en la Tarea', items:[
-      { id:'conocimiento', label:'Conocimiento técnico', desc:'Demuestra el conocimiento adecuado para realizar la tarea que se le encomienda.', fundamental:true },
-      { id:'productividad', label:'Productividad', desc:'El nivel de cumplimiento de las tareas es óptimo en los tiempos considerados.' },
-      { id:'habilidad', label:'Habilidad técnica', desc:'Manejo de herramientas, vehículos, tecnología o sistemas (escáner, software de gestión, etc.).', fundamental:true },
-      { id:'calidad', label:'Calidad', desc:'Grado de exactitud y calidad en la ejecución de las tareas asignadas.' },
-      { id:'resolucion', label:'Resolución de problemas', desc:'Habilidad para resolver situaciones imprevistas de manera efectiva (tráfico, auxilios, reparaciones fuera de horario, etc.).', fundamental:true }
+      { id:'conocimiento', label:'Conocimiento de la ruta y el roster', desc:'Conoce en detalle el recorrido, los horarios y la rotación de turnos (roster) asignados, incluyendo los puntos de parada y las condiciones particulares de cada tramo.', fundamental:true },
+      { id:'productividad', label:'Cumplimiento de horarios de viaje', desc:'Cumple los tiempos de viaje establecidos para cada turno sin demoras injustificadas, optimizando el recorrido dentro de las normas de tránsito.' },
+      { id:'habilidad', label:'Manejo del vehículo en rutas mineras', desc:'Conduce con destreza en caminos de ripio, montaña o condiciones climáticas adversas propias del trayecto al yacimiento, y maneja correctamente el sistema de comunicación/radio del vehículo.', fundamental:true },
+      { id:'calidad', label:'Inspección y estado del vehículo', desc:'Realiza correctamente el checklist de inspección pre-viaje (frenos, luces, neumáticos, documentación) y reporta cualquier anomalía antes de iniciar el turno.' },
+      { id:'resolucion', label:'Resolución de imprevistos en ruta', desc:'Resuelve con criterio situaciones imprevistas propias del trayecto (cortes de camino, cruce de maquinaria pesada, averías, demoras) manteniendo la seguridad del pasaje.', fundamental:true }
     ]},
     { id:'actitud', title:'Actitud y Comportamiento Profesional', items:[
-      { id:'normativa', label:'Normativa interna', desc:'Cumplimiento de normas y procedimientos de trabajo establecidos para cada tarea.', fundamental:true },
-      { id:'profesionalismo', label:'Profesionalismo', desc:'Responsabilidad por los resultados obtenidos en su trabajo.' },
-      { id:'etica', label:'Ética', desc:'Respeto por las políticas y valores de la empresa.' }
+      { id:'normativa', label:'Normativa de tránsito y de la empresa', desc:'Cumple estrictamente las normas de tránsito vigentes y los protocolos de transporte de personal establecidos por la empresa y el cliente minero.', fundamental:true },
+      { id:'profesionalismo', label:'Profesionalismo al volante', desc:'Asume la responsabilidad por la seguridad del vehículo y de los pasajeros durante todo el trayecto, actuando con criterio profesional.' },
+      { id:'etica', label:'Ética', desc:'Respeta las políticas y valores de la empresa, incluyendo el uso adecuado del vehículo y los recursos asignados.' }
     ]},
     { id:'colaborativo', title:'Trabajo Colaborativo', items:[
-      { id:'equipo', label:'Trabajo en equipo', desc:'Predisposición y actitud para colaborar con el equipo de trabajo.' },
-      { id:'interpersonales', label:'Relaciones interpersonales', desc:'Capacidad para relacionarse efectivamente con sus pares.' },
-      { id:'comunicacion_equipo', label:'Comunicación', desc:'Habilidad para comunicarse de manera efectiva con compañeros y supervisores.' },
-      { id:'adapt_cambio', label:'Adaptabilidad al cambio', desc:'Flexibilidad para adaptarse a cambios o nuevas tareas que se presenten.' }
+      { id:'equipo', label:'Coordinación con logística', desc:'Coordina de manera ágil con el área de logística los cambios de roster, reemplazos de turno o modificaciones de recorrido.' },
+      { id:'interpersonales', label:'Relaciones con pares y supervisores', desc:'Mantiene buena relación de trabajo con otros choferes y con los supervisores de tráfico/logística.' },
+      { id:'comunicacion_equipo', label:'Comunicación en ruta', desc:'Utiliza correctamente el radio o sistema de comunicación con control de tránsito para informar demoras, incidentes o cambios de ruta.' },
+      { id:'adapt_cambio', label:'Adaptabilidad a cambios de roster', desc:'Se adapta sin inconvenientes a cambios de turno, recorrido o unidad asignada ante necesidades operativas.' }
     ]},
     { id:'puntualidad', title:'Puntualidad y Responsabilidad', items:[
-      { id:'puntualidad', label:'Puntualidad', desc:'Llega a tiempo a su puesto de trabajo, respetando los horarios establecidos.', fundamental:true },
-      { id:'asistencia', label:'Asistencia', desc:'Asistencia regular y sin ausencias injustificadas.', fundamental:true }
+      { id:'puntualidad', label:'Puntualidad en el roster', desc:'Se presenta a horario para cada turno asignado del roster, factor clave para no afectar el traslado de personal a la operación minera.', fundamental:true },
+      { id:'asistencia', label:'Asistencia', desc:'Asistencia regular y sin ausencias injustificadas que comprometan la cobertura del roster.', fundamental:true }
     ]},
     { id:'aprender', title:'Capacidad de Aprender', items:[
-      { id:'aprendizaje', label:'Aprendizaje', desc:'Muestra rapidez en la adopción de nuevos procesos internos, herramientas o tecnologías.', fundamental:true },
-      { id:'mejora', label:'Capacidad de mejora', desc:'Actitud ante la retroalimentación y disposición para mejorar.' },
-      { id:'autoconocimiento', label:'Autoconocimiento', desc:'Demuestra interés y habilidad para mejorar continuamente sus habilidades y desempeño.' }
+      { id:'aprendizaje', label:'Aprendizaje de rutas y protocolos nuevos', desc:'Muestra rapidez para aprender nuevas rutas, protocolos de ingreso a yacimiento o cambios en el sistema de gestión de viajes.', fundamental:true },
+      { id:'mejora', label:'Capacidad de mejora', desc:'Buena actitud ante la retroalimentación sobre su manejo o desempeño en ruta, y disposición para mejorar.' },
+      { id:'autoconocimiento', label:'Autoconocimiento', desc:'Reconoce sus propios límites (fatiga, estado físico) y actúa en consecuencia para garantizar un manejo seguro.' }
     ]},
     { id:'decisiones', title:'Resolución de Problemas y Toma de Decisiones', items:[
-      { id:'analitica', label:'Capacidad analítica', desc:'Capacidad para identificar problemas y encontrar soluciones rápidas y efectivas.' },
-      { id:'toma_decisiones', label:'Toma de decisiones', desc:'Toma decisiones adecuadas considerando los objetivos de la empresa y sus posibles consecuencias.' },
-      { id:'adapt_imprevistos', label:'Adaptabilidad ante imprevistos', desc:'Capacidad para manejar situaciones imprevistas, como retrasos, cambios de última hora o problemas de tráfico (choferes).', fundamental:true }
+      { id:'analitica', label:'Capacidad analítica en ruta', desc:'Identifica rápidamente riesgos en el camino (clima, estado de la vía, tránsito de maquinaria) y anticipa soluciones.' },
+      { id:'toma_decisiones', label:'Toma de decisiones', desc:'Toma decisiones adecuadas ante imprevistos de ruta, priorizando la seguridad del pasaje y el cumplimiento del horario.' },
+      { id:'adapt_imprevistos', label:'Gestión de fatiga e imprevistos', desc:'Reconoce y gestiona adecuadamente los signos de fatiga en turnos largos o nocturnos, y resuelve con criterio retrasos, cambios de última hora o cortes de ruta.', fundamental:true }
     ]},
     { id:'seguridad', title:'Seguridad e Higiene', items:[
-      { id:'epp', label:'Equipos de protección personal', desc:'Uso adecuado de equipos de protección personal (si aplica).', fundamental:true },
-      { id:'normas_seguridad', label:'Cumplimiento de normas de seguridad', desc:'Cumplimiento de los protocolos de seguridad interna y externa (accidentes, emergencias).', fundamental:true }
+      { id:'epp', label:'Uso de EPP y elementos de seguridad', desc:'Usa correctamente los elementos de protección personal exigidos y mantiene los elementos de seguridad del vehículo (matafuego, botiquín, triángulos) en condiciones.', fundamental:true },
+      { id:'normas_seguridad', label:'Protocolo de ingreso a yacimiento', desc:'Cumple con la inducción de seguridad minera, los checkpoints de control y la documentación requerida para el ingreso al sitio, así como los protocolos ante accidentes o emergencias en ruta.', fundamental:true }
     ]},
     { id:'clientes', title:'Relaciones con Clientes', optional:true, items:[
-      { id:'contacto', label:'Modalidad de contacto', desc:'Trato profesional y cortés hacia los clientes o usuarios.', fundamental:true },
-      { id:'respuesta', label:'Capacidad de respuesta', desc:'Resolución efectiva de dudas o problemas planteados por los clientes.' },
-      { id:'orientacion', label:'Orientación al cliente', desc:'Capacidad para mantener una buena relación comercial y ofrecer un excelente servicio.', fundamental:true },
-      { id:'resolucion_cliente', label:'Resolución', desc:'Actitud proactiva para optimizar los procesos y resultados con los clientes.' }
+      { id:'contacto', label:'Trato al pasajero minero', desc:'Trato profesional y cortés hacia los trabajadores transportados, con atención particular en turnos extensos o nocturnos.', fundamental:true },
+      { id:'respuesta', label:'Capacidad de respuesta', desc:'Resuelve con eficacia los pedidos o inconvenientes planteados por los pasajeros durante el viaje.' },
+      { id:'orientacion', label:'Embarque y desembarque seguro', desc:'Garantiza un embarque y desembarque seguro y ordenado de los trabajadores en cada parada o en el yacimiento.', fundamental:true },
+      { id:'resolucion_cliente', label:'Resolución', desc:'Actitud proactiva para mejorar la experiencia de viaje de los pasajeros dentro de los márgenes de seguridad.' }
     ]},
     { id:'comunicacion', title:'Comunicación', items:[
-      { id:'claridad', label:'Claridad en la comunicación', desc:'Comunica de manera clara y efectiva tanto con superiores como con compañeros y clientes.' },
-      { id:'conflictos', label:'Manejo de conflictos', desc:'Manejo adecuado de conflictos y resolución de problemas en la relación con terceros.' }
+      { id:'claridad', label:'Claridad en la comunicación', desc:'Comunica de manera clara con supervisores, logística y pasajeros, especialmente ante demoras o cambios de recorrido.' },
+      { id:'conflictos', label:'Manejo de conflictos', desc:'Maneja adecuadamente situaciones de conflicto con pasajeros o en la vía, evitando que escalen y priorizando la seguridad.' }
     ]}
   ];
 
